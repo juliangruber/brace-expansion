@@ -1,0 +1,25 @@
+{
+  "name": "expand",
+  "description": "Common expansions as defined by bash(1)",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/juliangruber/expand.git"
+  },
+  "homepage": "https://github.com/juliangruber/expand",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "devDependencies": {
+    "tape": "*"
+  },
+  "keywords": [
+  ],
+  "author": {
+    "name": "Julian Gruber",
+    "email": "mail@juliangruber.com",
+    "url": "http://juliangruber.com"
+  },
+  "license": "MIT"
+}
