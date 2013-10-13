@@ -1,21 +1,24 @@
 {
-  "name": "expand",
-  "description": "Common expansions as defined by bash(1)",
+  "name": "brace-expansion",
+  "description": "Brace expansion as known from sh/bash",
   "version": "0.0.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/juliangruber/expand.git"
+    "url": "git://github.com/juliangruber/brace-expansion.git"
   },
-  "homepage": "https://github.com/juliangruber/expand",
+  "homepage": "https://github.com/juliangruber/brace-expansion",
   "main": "index.js",
   "scripts": {
     "test": "tape test/*.js"
   },
-  "devDependencies": {
-    "tape": "*"
+  "dependencies": {
+    "concat-map": "0.0.0",
+    "balanced-match": "0.0.0"
   },
-  "keywords": [
-  ],
+  "devDependencies": {
+    "tape": "~1.1.1"
+  },
+  "keywords": [],
   "author": {
     "name": "Julian Gruber",
     "email": "mail@juliangruber.com",

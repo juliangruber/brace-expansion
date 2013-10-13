@@ -1,67 +1,100 @@
+var concatMap = require('concat-map');
+var balanced = require('balanced-match');
+
 module.exports = expand;
 
-function expand(str) {
-  var ret = expandBraces(str);
-
-  for (var i = ret.length - 1; i >= 0; i--) {
-    ret.splice.apply(ret, [i, 1].concat(expandRanges(ret[i])));
-  }
-  return ret;
-}
-
-function expandBraces(str) {
-  var expansions = [];
-  var m = /{[^}]*}/g.exec(str);
-  if (!m) return [str];
-
-  var pre = expandBraces(m.input.substr(0, m.index));
-  var n = m[0].substr(1, m[0].length - 2).split(',');
-  var post = expandBraces(m.input.slice(m.index + m[0].length));
-
-  for (var i = 0; i < pre.length; i++) {
-    for (var j = 0; j < n.length; j++) {
-      for (var k = 0; k < post.length; k++) {
-        expansions.push([pre[i], n[j], post[k]].join(''))
-      }
-    }
-  }
-
-  return expansions;
-}
-
-function number(str) {
+function numeric(str) {
   return parseInt(str, 10) == str
     ? parseInt(str, 10)
     : str.charCodeAt(0);
 }
 
-function expandRanges(str) {
+function expand(str) {
   var expansions = [];
-  var m = /\[[^\]]*\]/g.exec(str);
-  if (!m) return [str];
 
-  var pre = expandRanges(m.input.substr(0, m.index));
+  var m = balanced('{', '}', str);
+  if (!m || /\$$/.test(m.pre)) return [str];
 
-  var n = m[0].substr(1, m[0].length - 2).split('-');
-  var stringMode = /[a-z]/i.test(n[0]);
-  var start = number(n[0]);
-  var end = /\:/.test(n[1])
-    ? number(n[1].split(':')[0])
-    : number(n[1]);
-  var step = /\:/.test(n[1])
-    ? number(n[1].split(':')[1])
-    : 1;
+  var isNumericSequence = /^-?\d+\.\.-?\d+(\.\.-?\d+)?$/.test(m.body);
+  var isAlphaSequence = /^[^0-9]\.\.[^0-9](\.\.\d+)?$/.test(m.body);
+  var isSequence = isNumericSequence || isAlphaSequence;
+  var isOptions = /^(.*,)+(.+)?$/.test(m.body);
+  if (!isSequence && !isOptions) return [str];
 
-  var N = [];
-  function push(i) {
-    if (stringMode) N.push(String.fromCharCode(i))
-    else N.push(i);
+  var pre = m.pre.length
+    ? expand(m.pre)
+    : [''];
+  var post = m.post.length
+    ? expand(m.post)
+    : [''];
+
+  var n = [];
+  var bal = 0;
+  var buf = '';
+  var sep = isSequence
+    ? /^\.\./
+    : /^,/;
+  var c, next;
+  for (var i = 0; i < m.body.length; i++) {
+    c = m.body[i];
+
+    if (!bal && sep.test(m.body.slice(i))) {
+      n.push(buf);
+      buf = '';
+    } else if (!(isSequence && c == '.')){
+      buf += c;
+
+      if (c == '{') {
+        bal++;
+      } else if (c == '}') {
+        bal--;
+      }
+    }
+    if (i == m.body.length - 1) {
+      n.push(buf);
+    }
   }
 
-  for (var i = start; i <= end; i += step) push(i);
-  if (end - start % 2) push(end);
+  n = concatMap(n, function(el) { return expand(el) });
+  var N;
 
-  var post = expandRanges(m.input.slice(m.index + m[0].length));
+  if (isSequence) {
+    var x = numeric(n[0]);
+    var y = numeric(n[1]);
+    var width = typeof x == 'number'
+      ? Math.max(n[0].length, n[1].length)
+      : 1;
+    var incr = n.length == 3
+      ? Math.abs(numeric(n[2]))
+      : 1;
+    var reverse = y < x;
+    var pad = n.filter(function(el) {
+      return /^-?0\d/.test(el);
+    }).length;
+
+    N = [];
+    function push(i) {
+      if (isAlphaSequence) {
+        N.push(String.fromCharCode(i));
+      } else {
+        i = String(i);
+        if (pad) {
+          while (i.length < width) i = '0' + i;
+        }
+        N.push(i);
+      }
+    }
+
+    if (reverse) {
+      for (var i = x; i >= y; i -= incr) push(i);
+    } else {
+      for (var i = x; i <= y; i += incr) push(i);
+    }
+
+    if (Math.abs(y - x) % incr) push(y);
+  } else {
+    N = n;
+  }
 
   for (var i = 0; i < pre.length; i++) {
     for (var j = 0; j < N.length; j++) {
