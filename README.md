@@ -6,6 +6,8 @@ as known from sh/bash, in JavaScript.
 
 [![build status](https://secure.travis-ci.org/juliangruber/brace-expansion.png)](http://travis-ci.org/juliangruber/brace-expansion)
 
+[![testling badge](https://ci.testling.com/juliangruber/brace-expansion.png)](https://ci.testling.com/juliangruber/brace-expansion)
+
 ## Example
 
 ```js
