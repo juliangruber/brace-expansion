@@ -1,4 +1,3 @@
-
 # brace-expansion
 
 [Brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html), 
@@ -15,7 +14,7 @@ var expand = require('brace-expansion');
 
 // expand comma seperated lists
 console.log(expand('file-{a,b,c}.jpg'));
-// => ['file-a.jpg', 'file-b.jpg', 'file-c'.jpg]
+// => ['file-a.jpg', 'file-b.jpg', 'file-c.jpg']
 
 console.log(expand('-v{,,}'));
 // => ['-v', '-v', '-v']
