@@ -12,42 +12,34 @@ as known from sh/bash, in JavaScript.
 ```js
 var expand = require('brace-expansion');
 
-// expand comma seperated lists
-console.log(expand('file-{a,b,c}.jpg'));
+expand('file-{a,b,c}.jpg')
 // => ['file-a.jpg', 'file-b.jpg', 'file-c.jpg']
 
-console.log(expand('-v{,,}'));
+expand('-v{,,}')
 // => ['-v', '-v', '-v']
 
-// expand ranges
-console.log(expand('file{0..2}.jpg'));
+expand('file{0..2}.jpg')
 // => ['file0.jpg', 'file1.jpg', 'file2.jpg']
 
-// characters work too
-console.log(expand('file-{a..c}.jpg'));
+expand('file-{a..c}.jpg')
 // => ['file-a.jpg', 'file-b.jpg', 'file-c.jpg']
 
-// backwards iteration
-console.log(expand('file{2..0}.jpg'));
+expand('file{2..0}.jpg')
 // => ['file2.jpg', 'file1.jpg', 'file0.jpg']
 
-// custom increment values
-console.log(expand('file{0..4..2}.jpg'));
+expand('file{0..4..2}.jpg')
 // => ['file0.jpg', 'file2.jpg', 'file4.jpg']
 
-// also with characters
-console.log(expand('file-{a..e..2}.jpg'));
+expand('file-{a..e..2}.jpg')
 // => ['file-a.jpg', 'file-c.jpg', 'file-e.jpg']
 
-// optional padding
-console.log(expand('file{00..10..5}.jpg'));
+expand('file{00..10..5}.jpg')
 // => ['file00.jpg', 'file05.jpg', 'file10.jpg']
 
-// nested expansion
-console.log(expand('{{A..C},{a..c}}'));
+expand('{{A..C},{a..c}}')
 // => ['A', 'B', 'C', 'a', 'b', 'c']
 
-console.log(expand('ppp{,config,oe{,conf}}'));
+expand('ppp{,config,oe{,conf}}')
 // => ['ppp', 'pppconfig', 'pppoe', 'pppoeconf']
 ```
 
