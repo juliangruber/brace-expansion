@@ -79,14 +79,20 @@ function expand(str) {
         c = String.fromCharCode(i);
         if (c === '\\')
           c = '';
-        N.push(c);
       } else {
-        i = String(i);
+        c = String(i);
         if (pad) {
-          while (i.length < width) i = '0' + i;
+          var need = width - c.length;
+          if (need > 0) {
+            var z = new Array(need + 1).join('0');
+            if (i < 0)
+              c = '-' + z + c.slice(1);
+            else
+              c = z + c;
+          }
         }
-        N.push(i);
       }
+      N.push(c);
     }
 
     if (reverse) {
