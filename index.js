@@ -1,12 +1,22 @@
 var concatMap = require('concat-map');
 var balanced = require('balanced-match');
 
-module.exports = expand;
+module.exports = expandTop;
 
 function numeric(str) {
   return parseInt(str, 10) == str
     ? parseInt(str, 10)
     : str.charCodeAt(0);
+}
+
+function expandTop(str) {
+  if (!str)
+    return [];
+
+  var expansions = expand(str);
+  return expansions.filter(function(e) {
+    return e;
+  });
 }
 
 function expand(str) {
