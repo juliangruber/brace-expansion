@@ -16,7 +16,7 @@ function expand(str) {
   if (!m || /\$$/.test(m.pre)) return [str];
 
   var isNumericSequence = /^-?\d+\.\.-?\d+(\.\.-?\d+)?$/.test(m.body);
-  var isAlphaSequence = /^[^0-9]\.\.[^0-9](\.\.\d+)?$/.test(m.body);
+  var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](\.\.\d+)?$/.test(m.body);
   var isSequence = isNumericSequence || isAlphaSequence;
   var isOptions = /^(.*,)+(.+)?$/.test(m.body);
   if (!isSequence && !isOptions) return [str];
