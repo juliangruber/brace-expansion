@@ -90,8 +90,6 @@ function expand(str) {
     } else {
       for (var i = x; i <= y; i += incr) push(i);
     }
-
-    if (Math.abs(y - x) % incr) push(y);
   } else {
     N = n;
   }
