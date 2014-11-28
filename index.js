@@ -74,8 +74,12 @@ function expand(str) {
 
     N = [];
     function push(i) {
+      var c;
       if (isAlphaSequence) {
-        N.push(String.fromCharCode(i));
+        c = String.fromCharCode(i);
+        if (c === '\\')
+          c = '';
+        N.push(c);
       } else {
         i = String(i);
         if (pad) {
