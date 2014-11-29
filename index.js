@@ -24,6 +24,11 @@ function expand(str) {
 
   var m = balanced('{', '}', str);
   if (!m || /\$$/.test(m.pre)) return [str];
+  if (/\\$/.test(m.pre)) {
+    // Take off the \ char, but don't parse the {}
+    var slashed = m.pre.replace(/\\$/, '') + '{' + m.body + '}' + m.post;
+    return [ slashed ];
+  }
 
   var isNumericSequence = /^-?\d+\.\.-?\d+(\.\.-?\d+)?$/.test(m.body);
   var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](\.\.-?\d+)?$/.test(m.body);
