@@ -26,8 +26,8 @@ function expand(str) {
   if (!m || /\$$/.test(m.pre)) return [str];
   if (/\\$/.test(m.pre)) {
     // Take off the \ char, but don't parse the {}
-    var slashed = m.pre.replace(/\\$/, '') + '{' + m.body + '}' + m.post;
-    return [ slashed ];
+    var ret = str.slice(0, m.start - 1) + str.slice(m.start);
+    return [ ret ];
   }
 
   var isNumericSequence = /^-?\d+\.\.-?\d+(\.\.-?\d+)?$/.test(m.body);
