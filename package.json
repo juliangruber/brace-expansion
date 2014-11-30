@@ -9,7 +9,8 @@
   "homepage": "https://github.com/juliangruber/brace-expansion",
   "main": "index.js",
   "scripts": {
-    "test": "tape test/*.js"
+    "test": "tape test/*.js",
+    "gentest": "bash test/generate.sh"
   },
   "dependencies": {
     "concat-map": "0.0.0",

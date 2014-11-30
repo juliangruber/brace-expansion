@@ -16,7 +16,7 @@ test('numeric sequences with step count', function(t) {
     '0', '2', '4', '6', '8'
   ]);
   t.deepEqual(expand('{1..8..2}'), [
-    '1', '3', '5', '7', '8'
+    '1', '3', '5', '7'
   ]);
   t.end();
 });
@@ -43,7 +43,7 @@ test('alphabetic sequences with step count', function(t) {
     'a', 'c', 'e', 'g', 'i', 'k'
   ]);
   t.deepEqual(expand('{b..k..2}'), [
-    'b', 'd', 'f', 'h', 'j', 'k'
+    'b', 'd', 'f', 'h', 'j'
   ]);
   t.end();
 });
