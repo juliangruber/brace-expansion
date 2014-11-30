@@ -6,6 +6,7 @@ module.exports = expandTop;
 var escOpen = '\0OPEN'+Math.random()+'\0';
 var escClose = '\0CLOSE'+Math.random()+'\0';
 var escComma = '\0COMMA'+Math.random()+'\0';
+var escPeriod = '\0PERIOD'+Math.random()+'\0';
 
 function numeric(str) {
   return parseInt(str, 10) == str
@@ -16,13 +17,15 @@ function numeric(str) {
 function escapeBraces(str) {
   return str.split('\\{').join(escOpen)
             .split('\\}').join(escClose)
-            .split('\\,').join(escComma);
+            .split('\\,').join(escComma)
+            .split('\\.').join(escPeriod);
 }
 
 function unescapeBraces(str) {
   return str.split(escOpen).join('{')
             .split(escClose).join('}')
-            .split(escComma).join(',');
+            .split(escComma).join(',')
+            .split(escPeriod).join('.');
 }
 
 

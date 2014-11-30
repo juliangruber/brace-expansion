@@ -82,3 +82,4 @@ X{a..#}X
 # Need to escape slashes in here for reasons i guess.
 {a,\\{a,b}c}
 a,\\{b,c}
+{-10.\\.00}
