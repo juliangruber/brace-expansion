@@ -9,14 +9,60 @@ function numeric(str) {
     : str.charCodeAt(0);
 }
 
+// Basically just str.split(","), but handling cases
+// where we have nested braced sections, which should be
+// treated as individual members, like {a,{b,c},d}
+function parseCommaParts(str) {
+  if (!str)
+    return [''];
+
+  var parts = [];
+  var m = balanced('{', '}', str);
+
+  if (!m)
+    return str.split(',');
+
+  var pre = m.pre;
+  var body = m.body;
+  var post = m.post;
+  var p = pre.split(',');
+
+  p[p.length-1] += '{' + body + '}';
+  var postParts = parseCommaParts(post);
+  if (post.length) {
+    p[p.length-1] += postParts.shift();
+    p.push.apply(p, postParts);
+  }
+
+  parts.push.apply(parts, p);
+
+  return parts;
+}
+
 function expandTop(str) {
   if (!str)
     return [];
 
   var expansions = expand(str);
-  return expansions.filter(function(e) {
-    return e;
-  });
+  return expansions.filter(identity);
+}
+
+function identity(e) {
+  return e;
+}
+
+function embrace(str) {
+  return '{' + str + '}';
+}
+function isPadded(el) {
+  return /^-?0\d/.test(el);
+}
+
+function lte(i, y) {
+  return i <= y;
+}
+function gte(i, y) {
+  return i >= y;
 }
 
 function expand(str) {
@@ -30,65 +76,60 @@ function expand(str) {
     return [ ret ];
   }
 
-  var isNumericSequence = /^-?\d+\.\.-?\d+(\.\.-?\d+)?$/.test(m.body);
-  var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](\.\.-?\d+)?$/.test(m.body);
+  var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
+  var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
   var isSequence = isNumericSequence || isAlphaSequence;
   var isOptions = /^(.*,)+(.+)?$/.test(m.body);
   if (!isSequence && !isOptions) return [str];
 
-  var pre = m.pre.length
-    ? expand(m.pre)
-    : [''];
+  var n;
+  if (isSequence) {
+    n = m.body.split(/\.\./);
+  } else {
+    n = parseCommaParts(m.body);
+    if (n.length === 1) {
+      // x{{a,b}}y ==> x{a}y x{b}y
+      n = expand(n[0]).map(embrace);
+      if (n.length === 1) {
+        var post = m.post.length
+          ? expand(m.post)
+          : [''];
+        return post.map(function(p) {
+          return m.pre + n[0] + p;
+        });
+      }
+    }
+  }
+
+  // at this point, n is the parts, and we know it's not a comma set
+  // with a single entry.
+
+  // no need to expand pre, since it is guaranteed to be free of brace-sets
+  var pre = m.pre;
   var post = m.post.length
     ? expand(m.post)
     : [''];
 
-  var n = [];
-  var bal = 0;
-  var buf = '';
-  var sep = isSequence
-    ? /^\.\./
-    : /^,/;
-  var c, next;
-  for (var i = 0; i < m.body.length; i++) {
-    c = m.body[i];
-
-    if (!bal && sep.test(m.body.slice(i))) {
-      n.push(buf);
-      buf = '';
-    } else if (!(isSequence && c == '.')){
-      buf += c;
-
-      if (c == '{') {
-        bal++;
-      } else if (c == '}') {
-        bal--;
-      }
-    }
-    if (i == m.body.length - 1) {
-      n.push(buf);
-    }
-  }
-
-  n = concatMap(n, function(el) { return expand(el) });
   var N;
 
   if (isSequence) {
     var x = numeric(n[0]);
     var y = numeric(n[1]);
-    var width = typeof x == 'number'
-      ? Math.max(n[0].length, n[1].length)
-      : 1;
+    var width = Math.max(n[0].length, n[1].length)
     var incr = n.length == 3
       ? Math.abs(numeric(n[2]))
       : 1;
+    var test = lte;
     var reverse = y < x;
-    var pad = n.filter(function(el) {
-      return /^-?0\d/.test(el);
-    }).length;
+    if (reverse) {
+      incr *= -1;
+      test = gte;
+    }
+    var pad = n.some(isPadded);
 
     N = [];
-    function push(i) {
+
+    for (var i = x; test(i, y); i += incr) {
       var c;
       if (isAlphaSequence) {
         c = String.fromCharCode(i);
@@ -109,21 +150,13 @@ function expand(str) {
       }
       N.push(c);
     }
-
-    if (reverse) {
-      for (var i = x; i >= y; i -= incr) push(i);
-    } else {
-      for (var i = x; i <= y; i += incr) push(i);
-    }
   } else {
-    N = n;
+    N = concatMap(n, function(el) { return expand(el) });
   }
 
-  for (var i = 0; i < pre.length; i++) {
-    for (var j = 0; j < N.length; j++) {
-      for (var k = 0; k < post.length; k++) {
-        expansions.push([pre[i], N[j], post[k]].join(''))
-      }
+  for (var j = 0; j < N.length; j++) {
+    for (var k = 0; k < post.length; k++) {
+      expansions.push([pre, N[j], post[k]].join(''))
     }
   }
 
