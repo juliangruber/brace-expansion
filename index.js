@@ -3,11 +3,28 @@ var balanced = require('balanced-match');
 
 module.exports = expandTop;
 
+var escOpen = '\0OPEN'+Math.random()+'\0';
+var escClose = '\0CLOSE'+Math.random()+'\0';
+var escComma = '\0COMMA'+Math.random()+'\0';
+
 function numeric(str) {
   return parseInt(str, 10) == str
     ? parseInt(str, 10)
     : str.charCodeAt(0);
 }
+
+function escapeBraces(str) {
+  return str.split('\\{').join(escOpen)
+            .split('\\}').join(escClose)
+            .split('\\,').join(escComma);
+}
+
+function unescapeBraces(str) {
+  return str.split(escOpen).join('{')
+            .split(escClose).join('}')
+            .split(escComma).join(',');
+}
+
 
 // Basically just str.split(","), but handling cases
 // where we have nested braced sections, which should be
@@ -43,8 +60,8 @@ function expandTop(str) {
   if (!str)
     return [];
 
-  var expansions = expand(str);
-  return expansions.filter(identity);
+  var expansions = expand(escapeBraces(str));
+  return expansions.filter(identity).map(unescapeBraces);
 }
 
 function identity(e) {
@@ -70,11 +87,6 @@ function expand(str) {
 
   var m = balanced('{', '}', str);
   if (!m || /\$$/.test(m.pre)) return [str];
-  if (/\\$/.test(m.pre)) {
-    // Take off the \ char, but don't parse the {}
-    var ret = str.slice(0, m.start - 1) + str.slice(m.start);
-    return [ ret ];
-  }
 
   var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
   var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
