@@ -3,6 +3,7 @@ var balanced = require('balanced-match');
 
 module.exports = expandTop;
 
+var escSlash = '\0SLASH'+Math.random()+'\0';
 var escOpen = '\0OPEN'+Math.random()+'\0';
 var escClose = '\0CLOSE'+Math.random()+'\0';
 var escComma = '\0COMMA'+Math.random()+'\0';
@@ -15,14 +16,16 @@ function numeric(str) {
 }
 
 function escapeBraces(str) {
-  return str.split('\\{').join(escOpen)
+  return str.split('\\\\').join(escSlash)
+            .split('\\{').join(escOpen)
             .split('\\}').join(escClose)
             .split('\\,').join(escComma)
             .split('\\.').join(escPeriod);
 }
 
 function unescapeBraces(str) {
-  return str.split(escOpen).join('{')
+  return str.split(escSlash).join('\\')
+            .split(escOpen).join('{')
             .split(escClose).join('}')
             .split(escComma).join(',')
             .split(escPeriod).join('.');

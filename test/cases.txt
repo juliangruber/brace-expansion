@@ -80,6 +80,7 @@ X{a..#}X
 
 {-10..00}
 # Need to escape slashes in here for reasons i guess.
+{a,\\\\{a,b}c}
 {a,\\{a,b}c}
 a,\\{b,c}
 {-10.\\.00}
