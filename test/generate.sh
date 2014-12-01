@@ -18,7 +18,7 @@ cat cases.txt | \
     if [ "${case:0:1}" = "#" ]; then
       continue;
     fi;
-    b=$($BASH -c 'for c in '"$case"'; do echo "$c"; done')
+    b="$($BASH -c 'for c in '"$case"'; do echo ["$c"]; done')"
     echo "$case"
     echo -n "$b><><><><";
   done > bash-results.txt

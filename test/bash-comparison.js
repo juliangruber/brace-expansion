@@ -15,13 +15,16 @@ test('matches bash expansions', function(t) {
 
     // If it expands to the empty string, then it's actually
     // just nothing, but Bash is a singly typed language, so
-    // "nothing" is the same as "".  Bash doesn't include them
-    // $ for i in {a,,,b}; do echo $i; done
-    // a
-    // b
-    set = set.filter(function(s) {
-      return s;
-    });
+    // "nothing" is the same as "".
+    if (set.length === 1 && set[0] === '') {
+      set = []
+    } else {
+      // otherwise, strip off the [] that were added so that
+      // "" expansions would be preserved properly.
+      set = set.map(function (s) {
+        return s.replace(/^\[|\]$/g, '')
+      })
+    }
 
     t.same(actual, set, pattern);
   });

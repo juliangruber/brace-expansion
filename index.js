@@ -66,8 +66,7 @@ function expandTop(str) {
   if (!str)
     return [];
 
-  var expansions = expand(escapeBraces(str));
-  return expansions.filter(identity).map(unescapeBraces);
+  return expand(escapeBraces(str), true).map(unescapeBraces);
 }
 
 function identity(e) {
@@ -88,7 +87,7 @@ function gte(i, y) {
   return i >= y;
 }
 
-function expand(str) {
+function expand(str, isTop) {
   var expansions = [];
 
   var m = balanced('{', '}', str);
@@ -114,10 +113,10 @@ function expand(str) {
     n = parseCommaParts(m.body);
     if (n.length === 1) {
       // x{{a,b}}y ==> x{a}y x{b}y
-      n = expand(n[0]).map(embrace);
+      n = expand(n[0], false).map(embrace);
       if (n.length === 1) {
         var post = m.post.length
-          ? expand(m.post)
+          ? expand(m.post, false)
           : [''];
         return post.map(function(p) {
           return m.pre + n[0] + p;
@@ -132,7 +131,7 @@ function expand(str) {
   // no need to expand pre, since it is guaranteed to be free of brace-sets
   var pre = m.pre;
   var post = m.post.length
-    ? expand(m.post)
+    ? expand(m.post, false)
     : [''];
 
   var N;
@@ -176,12 +175,14 @@ function expand(str) {
       N.push(c);
     }
   } else {
-    N = concatMap(n, function(el) { return expand(el) });
+    N = concatMap(n, function(el) { return expand(el, false) });
   }
 
   for (var j = 0; j < N.length; j++) {
     for (var k = 0; k < post.length; k++) {
-      expansions.push([pre, N[j], post[k]].join(''))
+      var expansion = pre + N[j] + post[k];
+      if (!isTop || isSequence || expansion)
+        expansions.push(expansion);
     }
   }
 
