@@ -91,6 +91,11 @@ With [npm](https://npmjs.org) do:
 npm install brace-expansion
 ```
 
+## Contributors
+
+- [Julian Gruber](https://github.com/juliangruber)
+- [Isaac Z. Schlueter](https://github.com/isaacs)
+
 ## License
 
 (MIT)
