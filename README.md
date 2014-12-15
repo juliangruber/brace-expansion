@@ -3,7 +3,7 @@
 [Brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html), 
 as known from sh/bash, in JavaScript.
 
-[![build status](https://secure.travis-ci.org/juliangruber/brace-expansion.png)](http://travis-ci.org/juliangruber/brace-expansion)
+[![build status](https://secure.travis-ci.org/juliangruber/brace-expansion.svg)](http://travis-ci.org/juliangruber/brace-expansion)
 
 [![testling badge](https://ci.testling.com/juliangruber/brace-expansion.png)](https://ci.testling.com/juliangruber/brace-expansion)
 
