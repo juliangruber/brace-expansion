@@ -17,7 +17,7 @@
     "concat-map": "0.0.1"
   },
   "devDependencies": {
-    "tape": "^3.0.3"
+    "tape": "4.2.1"
   },
   "keywords": [],
   "author": {
