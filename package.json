@@ -13,7 +13,7 @@
     "gentest": "bash test/generate.sh"
   },
   "dependencies": {
-    "balanced-match": "^0.3.0",
+    "balanced-match": "^0.4.0",
     "concat-map": "0.0.1"
   },
   "devDependencies": {
