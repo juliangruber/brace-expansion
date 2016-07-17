@@ -35,6 +35,7 @@ function unescapeBraces(str) {
 // Basically just str.split(","), but handling cases
 // where we have nested braced sections, which should be
 // treated as individual members, like {a,{b,c},d}
+// this just split on ',' but not the `,` in {}
 function parseCommaParts(str) {
   if (!str)
     return [''];
@@ -76,7 +77,7 @@ function expandTop(str) {
     str = '\\{\\}' + str.substr(2);
   }
 
-  return expand(escapeBraces(str), true).map(unescapeBraces);
+  return expand(escapeBraces(str)).map(unescapeBraces);
 }
 
 function identity(e) {
@@ -97,59 +98,63 @@ function gte(i, y) {
   return i >= y;
 }
 
-function expand(str, isTop) {
+function expand(str) {
   var expansions = [];
 
   var m = balanced('{', '}', str);
-  if (!m || /\$$/.test(m.pre)) return [str];
+
+  // ${a,b} doesn't expand
+  if (!m || (m.pre && m.pre.indexOf('$') === m.pre.length - 1)) return [str];
+
+  // no need to expand pre, since it is guaranteed to be free of brace-sets
+  var pre = m.pre;
 
   var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
   var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
   var isSequence = isNumericSequence || isAlphaSequence;
-  var isOptions = /^(.*,)+(.+)?$/.test(m.body);
+  var isOptions = m.body.indexOf(',') >= 0;
   if (!isSequence && !isOptions) {
     // {a},b}
     if (m.post.match(/,.*\}/)) {
-      str = m.pre + '{' + m.body + escClose + m.post;
+      // todo: this can probably be optimised if we slightly change the behaviour of `balanced-match`
+      // we want m.body to be `a},b` :)
+      str = pre + '{' + m.body + escClose + m.post;
+      // escaped the correct } and try again
       return expand(str);
     }
+    // "plain" string
     return [str];
   }
 
+  var post = m.post.length
+    ? expand(m.post)
+    : [''];
+
+  // n is options or sequence parts. EG: ['opt1', 'opt2'] or ['1', '3']
+  // N is the final parts after m.post is expanded and/or all options are expanded.
+  // EG: ['1', '2', '3'] if sequence
   var n;
-  if (isSequence) {
-    n = m.body.split(/\.\./);
-  } else {
+  var N = [];
+
+  if (isOptions) {
     n = parseCommaParts(m.body);
     if (n.length === 1) {
       // x{{a,b}}y ==> x{a}y x{b}y
-      n = expand(n[0], false).map(embrace);
+      n = expand(n[0]).map(embrace);
       if (n.length === 1) {
-        var post = m.post.length
-          ? expand(m.post, false)
-          : [''];
         return post.map(function(p) {
-          return m.pre + n[0] + p;
+          return pre + n[0] + p;
         });
       }
     }
-  }
 
-  // at this point, n is the parts, and we know it's not a comma set
-  // with a single entry.
+    N = concatMap(n, function(el) { return expand(el) });
+  } else {
+    // isSequence is true
+    n = m.body.split('..');
 
-  // no need to expand pre, since it is guaranteed to be free of brace-sets
-  var pre = m.pre;
-  var post = m.post.length
-    ? expand(m.post, false)
-    : [''];
-
-  var N;
-
-  if (isSequence) {
     var x = numeric(n[0]);
     var y = numeric(n[1]);
-    var width = Math.max(n[0].length, n[1].length)
     var incr = n.length == 3
       ? Math.abs(numeric(n[2]))
       : 1;
@@ -161,8 +166,6 @@ function expand(str, isTop) {
     }
     var pad = n.some(isPadded);
 
-    N = [];
-
     for (var i = x; test(i, y); i += incr) {
       var c;
       if (isAlphaSequence) {
@@ -170,8 +173,10 @@ function expand(str, isTop) {
         if (c === '\\')
           c = '';
       } else {
+        // todo: is Math.abs() faster?
         c = String(i);
         if (pad) {
+          var width = Math.max(n[0].length, n[1].length)
           var need = width - c.length;
           if (need > 0) {
             var z = new Array(need + 1).join('0');
@@ -184,18 +189,15 @@ function expand(str, isTop) {
       }
       N.push(c);
     }
-  } else {
-    N = concatMap(n, function(el) { return expand(el, false) });
   }
 
   for (var j = 0; j < N.length; j++) {
     for (var k = 0; k < post.length; k++) {
       var expansion = pre + N[j] + post[k];
-      if (!isTop || isSequence || expansion)
+      if (isSequence || expansion)
         expansions.push(expansion);
     }
   }
 
   return expansions;
 }
-
