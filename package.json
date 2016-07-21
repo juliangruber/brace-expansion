@@ -10,13 +10,15 @@
   "main": "index.js",
   "scripts": {
     "test": "tape test/*.js",
-    "gentest": "bash test/generate.sh"
+    "gentest": "bash test/generate.sh",
+    "bench": "matcha test/perf/bench.js"
   },
   "dependencies": {
     "balanced-match": "^0.4.1",
     "concat-map": "0.0.1"
   },
   "devDependencies": {
+    "matcha": "^0.7.0",
     "tape": "^4.6.0"
   },
   "keywords": [],
