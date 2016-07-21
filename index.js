@@ -103,6 +103,37 @@ function gte(i, y) {
   return i >= y;
 }
 
+// cache common cases for repeat0
+var cache = [
+  '0',
+  '00',
+  '000',
+  '0000',
+  '00000'
+];
+
+function repeat0(len) {
+  var ch = '0';
+
+  // cache common use cases
+  if (len <= 5) return cache[len - 1];
+
+  var zeros = ''
+
+  while (true) {
+    // add `ch` to `zeros` if `len` is odd
+    if (len & 1) zeros += ch;
+    // devide `len` by 2, ditch the fraction
+    len >>= 1;
+    // "double" the `ch` so this operation count grows logarithmically on `len`
+    // each time `ch` is "doubled", the `len` would need to be "doubled" too
+    // similar to finding a value in binary search tree, hence O(log(n))
+    if (len) ch += ch;
+    // `len` is 0, return zeros
+    else return zeros;
+  }
+}
+
 function expand(str) {
   var expansions = [];
 
@@ -178,13 +209,14 @@ function expand(str) {
         if (c === '\\')
           c = '';
       } else {
+        // isNumericSequence is true
         // todo: is Math.abs() faster?
         c = String(i);
         if (pad) {
           var width = Math.max(n[0].length, n[1].length)
           var need = width - c.length;
           if (need > 0) {
-            var z = new Array(need + 1).join('0');
+            var z = repeat0(need);
             if (i < 0)
               c = '-' + z + c.slice(1);
             else
