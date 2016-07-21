@@ -31,6 +31,11 @@ function unescapeBraces(str) {
             .split(escPeriod).join('.');
 }
 
+// cache regex
+var rDigit = /^-?0\d/;
+var rNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/;
+var rAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/
+var raCloseB = /,.*\}/;
 
 // Basically just str.split(","), but handling cases
 // where we have nested braced sections, which should be
@@ -88,7 +93,7 @@ function embrace(str) {
   return '{' + str + '}';
 }
 function isPadded(el) {
-  return /^-?0\d/.test(el);
+  return rDigit.test(el);
 }
 
 function lte(i, y) {
@@ -109,13 +114,13 @@ function expand(str) {
   // no need to expand pre, since it is guaranteed to be free of brace-sets
   var pre = m.pre;
 
-  var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
-  var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
+  var isNumericSequence = rNumericSequence.test(m.body);
+  var isAlphaSequence = rAlphaSequence.test(m.body);
   var isSequence = isNumericSequence || isAlphaSequence;
   var isOptions = m.body.indexOf(',') >= 0;
   if (!isSequence && !isOptions) {
     // {a},b}
-    if (m.post.match(/,.*\}/)) {
+    if (m.post.match(raCloseB)) {
       // todo: this can probably be optimised if we slightly change the behaviour of `balanced-match`
       // we want m.body to be `a},b` :)
       str = pre + '{' + m.body + escClose + m.post;
