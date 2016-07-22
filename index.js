@@ -129,7 +129,7 @@ function repeat0(len) {
     // each time `ch` is "doubled", the `len` would need to be "doubled" too
     // similar to finding a value in binary search tree, hence O(log(n))
     if (len) ch += ch;
-    // `len` is 0, return zeros
+    // `len` is `0`, return `zeros`
     else return zeros;
   }
 }
@@ -210,7 +210,6 @@ function expand(str) {
           c = '';
       } else {
         // isNumericSequence is true
-        // todo: is Math.abs() faster?
         c = String(i);
         if (pad) {
           var width = Math.max(n[0].length, n[1].length)
