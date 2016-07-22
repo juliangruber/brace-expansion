@@ -104,19 +104,19 @@ function gte(i, y) {
 }
 
 // cache common cases for repeat0
-var cache = [
-  '0',
-  '00',
-  '000',
-  '0000',
-  '00000'
-];
+var cache = {
+  1: '0',
+  2: '00',
+  3: '000',
+  4: '0000',
+  5: '00000'
+};
 
 function repeat0(len) {
   var ch = '0';
 
   // cache common use cases
-  if (len <= 5) return cache[len - 1];
+  if (len <= 5) return cache[len];
 
   var zeros = ''
 
