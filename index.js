@@ -152,8 +152,8 @@ function expand(str) {
   if (!isSequence && !isOptions) {
     // {a},b}
     if (m.post.match(raCloseB)) {
-      // todo: this can probably be optimised if we slightly change the behaviour of `balanced-match`
       // we want m.body to be `a},b` :)
+      // so this becomes options; n would be ['a}', 'b']
       str = pre + '{' + m.body + escClose + m.post;
       // escaped the correct } and try again
       return expand(str);
