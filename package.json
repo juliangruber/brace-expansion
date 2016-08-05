@@ -8,6 +8,9 @@
   },
   "homepage": "https://github.com/juliangruber/brace-expansion",
   "main": "index.js",
+  "files": [
+    "index.js"
+  ],
   "scripts": {
     "test": "tape test/*.js",
     "gentest": "bash test/generate.sh",
