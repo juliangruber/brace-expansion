@@ -14,8 +14,7 @@
     "bench": "matcha test/perf/bench.js"
   },
   "dependencies": {
-    "balanced-match": "^0.4.1",
-    "concat-map": "0.0.1"
+    "balanced-match": "^0.4.1"
   },
   "devDependencies": {
     "matcha": "^0.7.0",
