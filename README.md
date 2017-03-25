@@ -1,5 +1,7 @@
 # brace-expansion
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/juliangruber/brace-expansion.svg)](https://greenkeeper.io/)
+
 [Brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html), 
 as known from sh/bash, in JavaScript.
 
