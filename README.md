@@ -1,6 +1,5 @@
 # brace-expansion
 
-
 [Brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html), 
 as known from sh/bash, in JavaScript.
 
