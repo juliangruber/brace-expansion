@@ -9,9 +9,7 @@ if [ "${BASH_VERSINFO[0]}" != "4" ] || [ "${BASH_VERSINFO[1]}" != "3" ]; then
   exit 1
 fi
 
-CDPATH= cd "$(dirname "$0")"
-
-js='require("./")(process.argv[1]).join(" ")'
+cd "$(dirname "$0")"
 
 cat cases.txt | \
   while read case; do

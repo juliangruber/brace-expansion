@@ -31,10 +31,16 @@ function unescapeBraces(str) {
             .split(escPeriod).join('.');
 }
 
+// cache regex
+var rDigit = /^-?0\d/;
+var rNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/;
+var rAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/
+var raCloseB = /,.*\}/;
 
 // Basically just str.split(","), but handling cases
 // where we have nested braced sections, which should be
 // treated as individual members, like {a,{b,c},d}
+// this just split on ',' but not the `,` in {}
 function parseCommaParts(str) {
   if (!str)
     return [''];
@@ -76,14 +82,14 @@ function expandTop(str) {
     str = '\\{\\}' + str.substr(2);
   }
 
-  return expand(escapeBraces(str), true).map(unescapeBraces);
+  return expand(escapeBraces(str)).map(unescapeBraces);
 }
 
 function embrace(str) {
   return '{' + str + '}';
 }
 function isPadded(el) {
-  return /^-?0\d/.test(el);
+  return rDigit.test(el);
 }
 
 function lte(i, y) {
@@ -93,59 +99,94 @@ function gte(i, y) {
   return i >= y;
 }
 
-function expand(str, isTop) {
+// cache common cases for repeat0
+var cache = {
+  1: '0',
+  2: '00',
+  3: '000',
+  4: '0000',
+  5: '00000'
+};
+
+function repeat0(len) {
+  var ch = '0';
+
+  // cache common use cases
+  if (len <= 5) return cache[len];
+
+  var zeros = ''
+
+  while (true) {
+    // add `ch` to `zeros` if `len` is odd
+    if (len & 1) zeros += ch;
+    // devide `len` by 2, ditch the fraction
+    len >>= 1;
+    // "double" the `ch` so this operation count grows logarithmically on `len`
+    // each time `ch` is "doubled", the `len` would need to be "doubled" too
+    // similar to finding a value in binary search tree, hence O(log(n))
+    if (len) ch += ch;
+    // `len` is `0`, return `zeros`
+    else return zeros;
+  }
+}
+
+function expand(str) {
   var expansions = [];
 
   var m = balanced('{', '}', str);
-  if (!m || /\$$/.test(m.pre)) return [str];
 
-  var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
-  var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
+  // ${a,b} doesn't expand
+  if (!m || (m.pre && m.pre.indexOf('$') === m.pre.length - 1)) return [str];
+
+  // no need to expand pre, since it is guaranteed to be free of brace-sets
+  var pre = m.pre;
+
+  var isNumericSequence = rNumericSequence.test(m.body);
+  var isAlphaSequence = rAlphaSequence.test(m.body);
   var isSequence = isNumericSequence || isAlphaSequence;
   var isOptions = m.body.indexOf(',') >= 0;
   if (!isSequence && !isOptions) {
     // {a},b}
-    if (m.post.match(/,.*\}/)) {
-      str = m.pre + '{' + m.body + escClose + m.post;
+    if (m.post.match(raCloseB)) {
+      // we want m.body to be `a},b` :)
+      // so this becomes options; n would be ['a}', 'b']
+      str = pre + '{' + m.body + escClose + m.post;
+      // escaped the correct } and try again
       return expand(str);
     }
+    // "plain" string
     return [str];
   }
 
+  var post = m.post.length
+    ? expand(m.post)
+    : [''];
+
+  // n is options or sequence parts. EG: ['opt1', 'opt2'] or ['1', '3']
+  // N is the final parts after m.post is expanded and/or all options are expanded.
+  // EG: ['1', '2', '3'] if sequence
   var n;
-  if (isSequence) {
-    n = m.body.split(/\.\./);
-  } else {
+  var N = [];
+
+  if (isOptions) {
     n = parseCommaParts(m.body);
     if (n.length === 1) {
       // x{{a,b}}y ==> x{a}y x{b}y
-      n = expand(n[0], false).map(embrace);
+      n = expand(n[0]).map(embrace);
       if (n.length === 1) {
-        var post = m.post.length
-          ? expand(m.post, false)
-          : [''];
         return post.map(function(p) {
-          return m.pre + n[0] + p;
+          return pre + n[0] + p;
         });
       }
     }
-  }
 
-  // at this point, n is the parts, and we know it's not a comma set
-  // with a single entry.
+    N = concatMap(n, function(el) { return expand(el) });
+  } else {
+    // isSequence is true
+    n = m.body.split('..');
 
-  // no need to expand pre, since it is guaranteed to be free of brace-sets
-  var pre = m.pre;
-  var post = m.post.length
-    ? expand(m.post, false)
-    : [''];
-
-  var N;
-
-  if (isSequence) {
     var x = numeric(n[0]);
     var y = numeric(n[1]);
-    var width = Math.max(n[0].length, n[1].length)
     var incr = n.length == 3
       ? Math.abs(numeric(n[2]))
       : 1;
@@ -157,8 +198,6 @@ function expand(str, isTop) {
     }
     var pad = n.some(isPadded);
 
-    N = [];
-
     for (var i = x; test(i, y); i += incr) {
       var c;
       if (isAlphaSequence) {
@@ -166,11 +205,13 @@ function expand(str, isTop) {
         if (c === '\\')
           c = '';
       } else {
+        // isNumericSequence is true
         c = String(i);
         if (pad) {
+          var width = Math.max(n[0].length, n[1].length)
           var need = width - c.length;
           if (need > 0) {
-            var z = new Array(need + 1).join('0');
+            var z = repeat0(need);
             if (i < 0)
               c = '-' + z + c.slice(1);
             else
@@ -180,18 +221,15 @@ function expand(str, isTop) {
       }
       N.push(c);
     }
-  } else {
-    N = concatMap(n, function(el) { return expand(el, false) });
   }
 
   for (var j = 0; j < N.length; j++) {
     for (var k = 0; k < post.length; k++) {
       var expansion = pre + N[j] + post[k];
-      if (!isTop || isSequence || expansion)
+      if (isSequence || expansion)
         expansions.push(expansion);
     }
   }
 
   return expansions;
 }
-
