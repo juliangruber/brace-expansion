@@ -182,8 +182,8 @@ function expand(str, isTop) {
   } else {
     N = [];
 
-    n.map(function(el) {
-      [].push.apply(N, expand(el, false));
+    n.forEach(function(el) {
+      N.push.apply(N, expand(el, false));
     });
   }
 
