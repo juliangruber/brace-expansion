@@ -182,9 +182,9 @@ function expand(str, isTop) {
   } else {
     N = [];
 
-    n.forEach(function(el) {
-      N.push.apply(N, expand(el, false));
-    });
+    for (var j = 0; j < n.length; j++) {
+      N.push.apply(N, expand(n[j], false));
+    }
   }
 
   for (var j = 0; j < N.length; j++) {
