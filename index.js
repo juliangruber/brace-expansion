@@ -1,4 +1,3 @@
-var concatMap = require('concat-map');
 var balanced = require('balanced-match');
 
 module.exports = expandTop;
@@ -181,7 +180,11 @@ function expand(str, isTop) {
       N.push(c);
     }
   } else {
-    N = concatMap(n, function(el) { return expand(el, false) });
+    N = [];
+
+    for (var j = 0; j < n.length; j++) {
+      N.push.apply(N, expand(n[j], false));
+    }
   }
 
   for (var j = 0; j < N.length; j++) {
