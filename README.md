@@ -3,6 +3,7 @@
 [Brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html), 
 as known from sh/bash, in JavaScript.
 
+[![CI](https://github.com/juliangruber/brace-expansion/actions/workflows/ci.yml/badge.svg)](https://github.com/juliangruber/brace-expansion/actions/workflows/ci.yml)
 [![downloads](https://img.shields.io/npm/dm/brace-expansion.svg)](https://www.npmjs.org/package/brace-expansion)
 
 ## Example
