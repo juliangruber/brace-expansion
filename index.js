@@ -8,12 +8,18 @@ var escClose = '\0CLOSE'+Math.random()+'\0';
 var escComma = '\0COMMA'+Math.random()+'\0';
 var escPeriod = '\0PERIOD'+Math.random()+'\0';
 
+/**
+ * @return {number}
+ */
 function numeric(str) {
   return parseInt(str, 10) == str
     ? parseInt(str, 10)
     : str.charCodeAt(0);
 }
 
+/**
+ * @param {string} str
+ */
 function escapeBraces(str) {
   return str.split('\\\\').join(escSlash)
             .split('\\{').join(escOpen)
@@ -22,6 +28,9 @@ function escapeBraces(str) {
             .split('\\.').join(escPeriod);
 }
 
+/**
+ * @param {string} str
+ */
 function unescapeBraces(str) {
   return str.split(escSlash).join('\\')
             .split(escOpen).join('{')
@@ -30,10 +39,12 @@ function unescapeBraces(str) {
             .split(escPeriod).join('.');
 }
 
-
-// Basically just str.split(","), but handling cases
-// where we have nested braced sections, which should be
-// treated as individual members, like {a,{b,c},d}
+/**
+ * Basically just str.split(","), but handling cases
+ * where we have nested braced sections, which should be
+ * treated as individual members, like {a,{b,c},d}
+ * @param {string} str
+ */
 function parseCommaParts(str) {
   if (!str)
     return [''];
@@ -61,6 +72,9 @@ function parseCommaParts(str) {
   return parts;
 }
 
+/**
+ * @param {string} str
+ */
 function expandTop(str) {
   if (!str)
     return [];
@@ -78,21 +92,40 @@ function expandTop(str) {
   return expand(escapeBraces(str), true).map(unescapeBraces);
 }
 
+/**
+ * @param {string} str
+ */
 function embrace(str) {
   return '{' + str + '}';
 }
+/**
+ * @param {string} el
+ */
 function isPadded(el) {
   return /^-?0\d/.test(el);
 }
 
+/**
+ * @param {number} i
+ * @param {number} y
+ */
 function lte(i, y) {
   return i <= y;
 }
+/**
+ * @param {number} i
+ * @param {number} y
+ */
 function gte(i, y) {
   return i >= y;
 }
 
+/**
+ * @param {string} str
+ * @param {boolean} [isTop]
+ */
 function expand(str, isTop) {
+  /** @type {string[]} */
   var expansions = [];
 
   var m = balanced('{', '}', str);
@@ -104,7 +137,7 @@ function expand(str, isTop) {
     ? expand(m.post, false)
     : [''];
 
-  if (/\$$/.test(m.pre)) {    
+  if (/\$$/.test(m.pre)) {
     for (var k = 0; k < post.length; k++) {
       var expansion = pre+ '{' + m.body + '}' + post[k];
       expansions.push(expansion);
