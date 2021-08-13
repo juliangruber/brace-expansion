@@ -6,10 +6,17 @@ jobs:
     strategy:
       matrix:
         node: ['10', '12', '14', '16']
+        arch: ['ppc64le']
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node }}
       - run: npm ci
-      - run: npm test
+      - uses: uraimo/run-on-arch-action@v2.0.5
+        name: npm test
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ubuntu20.04
+          githubTok: ${{ github.token }}
+          run: npm test
