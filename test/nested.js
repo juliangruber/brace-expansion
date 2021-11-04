@@ -1,5 +1,5 @@
-var test = require('tape');
-var expand = require('..');
+const test = require('tape');
+const expand = require('..');
 
 test('nested', function(t) {
   t.deepEqual(expand('{a,b{1..3},c}'), [

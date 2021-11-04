@@ -1,5 +1,5 @@
-var test = require('tape');
-var expand = require('..');
+const test = require('tape');
+const expand = require('..');
 
 test('negative increment', function(t) {
   t.deepEqual(expand('{3..1}'), ['3', '2', '1']);
