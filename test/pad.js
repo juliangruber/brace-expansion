@@ -1,5 +1,5 @@
-var test = require('tape');
-var expand = require('..');
+const test = require('tape');
+const expand = require('..');
 
 test('pad', function(t) {
   t.deepEqual(expand('{9..11}'), [

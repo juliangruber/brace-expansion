@@ -1,4 +1,4 @@
-var expand = require('./');
+const expand = require('./');
 
 console.log(expand('http://any.org/archive{1996..1999}/vol{1..4}/part{a,b,c}.html'));
 console.log(expand('http://www.numericals.com/file{1..100..10}.txt'));

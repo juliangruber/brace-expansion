@@ -1,5 +1,5 @@
-var test = require('tape');
-var expand = require('..');
+const test = require('tape');
+const expand = require('..');
 
 test('order', function(t) {
   t.deepEqual(expand('a{d,c,b}e'), [

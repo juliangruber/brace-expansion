@@ -1,6 +1,6 @@
 # brace-expansion
 
-[Brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html), 
+[Brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html),
 as known from sh/bash, in JavaScript.
 
 [![CI](https://github.com/juliangruber/brace-expansion/actions/workflows/ci.yml/badge.svg)](https://github.com/juliangruber/brace-expansion/actions/workflows/ci.yml)
@@ -9,7 +9,7 @@ as known from sh/bash, in JavaScript.
 ## Example
 
 ```js
-var expand = require('brace-expansion');
+const expand = require('brace-expansion');
 
 expand('file-{a,b,c}.jpg')
 // => ['file-a.jpg', 'file-b.jpg', 'file-c.jpg']
@@ -45,10 +45,10 @@ expand('ppp{,config,oe{,conf}}')
 ## API
 
 ```js
-var expand = require('brace-expansion');
+const expand = require('brace-expansion');
 ```
 
-### var expanded = expand(str)
+### const expanded = expand(str)
 
 Return an array of all possible and valid expansions of `str`. If none are
 found, `[str]` is returned.

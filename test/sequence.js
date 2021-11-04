@@ -1,5 +1,5 @@
-var test = require('tape');
-var expand = require('..');
+const test = require('tape');
+const expand = require('..');
 
 test('numeric sequences', function(t) {
   t.deepEqual(expand('a{1..2}b{2..3}c'), [

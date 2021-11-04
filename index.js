@@ -1,12 +1,10 @@
-var balanced = require('balanced-match');
+const balanced = require('balanced-match');
 
-module.exports = expandTop;
-
-var escSlash = '\0SLASH'+Math.random()+'\0';
-var escOpen = '\0OPEN'+Math.random()+'\0';
-var escClose = '\0CLOSE'+Math.random()+'\0';
-var escComma = '\0COMMA'+Math.random()+'\0';
-var escPeriod = '\0PERIOD'+Math.random()+'\0';
+const escSlash = '\0SLASH'+Math.random()+'\0';
+const escOpen = '\0OPEN'+Math.random()+'\0';
+const escClose = '\0CLOSE'+Math.random()+'\0';
+const escComma = '\0COMMA'+Math.random()+'\0';
+const escPeriod = '\0PERIOD'+Math.random()+'\0';
 
 /**
  * @return {number}
@@ -49,19 +47,17 @@ function parseCommaParts(str) {
   if (!str)
     return [''];
 
-  var parts = [];
-  var m = balanced('{', '}', str);
+  const parts = [];
+  const m = balanced('{', '}', str);
 
   if (!m)
     return str.split(',');
 
-  var pre = m.pre;
-  var body = m.body;
-  var post = m.post;
-  var p = pre.split(',');
+  const {pre, body, post} = m;
+  const p = pre.split(',');
 
   p[p.length-1] += '{' + body + '}';
-  var postParts = parseCommaParts(post);
+  const postParts = parseCommaParts(post);
   if (post.length) {
     p[p.length-1] += postParts.shift();
     p.push.apply(p, postParts);
@@ -85,8 +81,8 @@ function expandTop(str) {
   // but a{},b}c will be expanded to [a}c,abc].
   // One could argue that this is a bug in Bash, but since the goal of
   // this module is to match Bash's rules, we escape a leading {}
-  if (str.substr(0, 2) === '{}') {
-    str = '\\{\\}' + str.substr(2);
+  if (str.slice(0, 2) === '{}') {
+    str = '\\{\\}' + str.slice(2);
   }
 
   return expand(escapeBraces(str), true).map(unescapeBraces);
@@ -98,6 +94,7 @@ function expandTop(str) {
 function embrace(str) {
   return '{' + str + '}';
 }
+
 /**
  * @param {string} el
  */
@@ -112,6 +109,7 @@ function isPadded(el) {
 function lte(i, y) {
   return i <= y;
 }
+
 /**
  * @param {number} i
  * @param {number} y
@@ -126,27 +124,27 @@ function gte(i, y) {
  */
 function expand(str, isTop) {
   /** @type {string[]} */
-  var expansions = [];
+  const expansions = [];
 
-  var m = balanced('{', '}', str);
+  const m = balanced('{', '}', str);
   if (!m) return [str];
 
   // no need to expand pre, since it is guaranteed to be free of brace-sets
-  var pre = m.pre;
-  var post = m.post.length
+  const pre = m.pre;
+  const post = m.post.length
     ? expand(m.post, false)
     : [''];
 
   if (/\$$/.test(m.pre)) {
-    for (var k = 0; k < post.length; k++) {
-      var expansion = pre+ '{' + m.body + '}' + post[k];
+    for (let k = 0; k < post.length; k++) {
+      const expansion = pre+ '{' + m.body + '}' + post[k];
       expansions.push(expansion);
     }
   } else {
-    var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
-    var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
-    var isSequence = isNumericSequence || isAlphaSequence;
-    var isOptions = m.body.indexOf(',') >= 0;
+    const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
+    const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
+    const isSequence = isNumericSequence || isAlphaSequence;
+    const isOptions = m.body.indexOf(',') >= 0;
     if (!isSequence && !isOptions) {
       // {a},b}
       if (m.post.match(/,.*\}/)) {
@@ -156,7 +154,7 @@ function expand(str, isTop) {
       return [str];
     }
 
-    var n;
+    let n;
     if (isSequence) {
       n = m.body.split(/\.\./);
     } else {
@@ -174,27 +172,27 @@ function expand(str, isTop) {
 
     // at this point, n is the parts, and we know it's not a comma set
     // with a single entry.
-    var N;
+    let N;
 
     if (isSequence) {
-      var x = numeric(n[0]);
-      var y = numeric(n[1]);
-      var width = Math.max(n[0].length, n[1].length)
-      var incr = n.length == 3
+      const x = numeric(n[0]);
+      const y = numeric(n[1]);
+      const width = Math.max(n[0].length, n[1].length)
+      let incr = n.length == 3
         ? Math.abs(numeric(n[2]))
         : 1;
-      var test = lte;
-      var reverse = y < x;
+      let test = lte;
+      const reverse = y < x;
       if (reverse) {
         incr *= -1;
         test = gte;
       }
-      var pad = n.some(isPadded);
+      const pad = n.some(isPadded);
 
       N = [];
 
-      for (var i = x; test(i, y); i += incr) {
-        var c;
+      for (let i = x; test(i, y); i += incr) {
+        let c;
         if (isAlphaSequence) {
           c = String.fromCharCode(i);
           if (c === '\\')
@@ -202,9 +200,9 @@ function expand(str, isTop) {
         } else {
           c = String(i);
           if (pad) {
-            var need = width - c.length;
+            const need = width - c.length;
             if (need > 0) {
-              var z = new Array(need + 1).join('0');
+              const z = new Array(need + 1).join('0');
               if (i < 0)
                 c = '-' + z + c.slice(1);
               else
@@ -217,14 +215,14 @@ function expand(str, isTop) {
     } else {
       N = [];
 
-      for (var j = 0; j < n.length; j++) {
+      for (let j = 0; j < n.length; j++) {
         N.push.apply(N, expand(n[j], false));
       }
     }
 
-    for (var j = 0; j < N.length; j++) {
-      for (var k = 0; k < post.length; k++) {
-        var expansion = pre + N[j] + post[k];
+    for (let j = 0; j < N.length; j++) {
+      for (let k = 0; k < post.length; k++) {
+        const expansion = pre + N[j] + post[k];
         if (!isTop || isSequence || expansion)
           expansions.push(expansion);
       }
@@ -234,3 +232,4 @@ function expand(str, isTop) {
   return expansions;
 }
 
+module.exports = expandTop;
