@@ -142,7 +142,7 @@ function expand(str, isTop) {
     }
   } else {
     if(/\\\$$/.test(pre)){
-      pre = pre.substring(0,pre.length - 3) + '$';
+      pre = pre.substring(0,pre.length - 2) + '$';
     }
     const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
     const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
