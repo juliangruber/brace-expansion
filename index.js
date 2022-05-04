@@ -130,25 +130,29 @@ function expand(str, isTop) {
   if (!m) return [str];
 
   // no need to expand pre, since it is guaranteed to be free of brace-sets
-  const pre = m.pre;
+  let pre = m.pre;
   const post = m.post.length
     ? expand(m.post, false)
     : [''];
 
-  if (/\$$/.test(m.pre)) {
+  if (/\$$/.test(pre) && !/\\\$$/.test(pre)) {
     for (let k = 0; k < post.length; k++) {
       const expansion = pre+ '{' + m.body + '}' + post[k];
       expansions.push(expansion);
     }
   } else {
+    if(/\\\$$/.test(pre)){
+      pre = pre.substring(0,pre.length - 2) + '$';
+    }
     const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
     const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
     const isSequence = isNumericSequence || isAlphaSequence;
     const isOptions = m.body.indexOf(',') >= 0;
+
     if (!isSequence && !isOptions) {
       // {a},b}
       if (m.post.match(/,.*\}/)) {
-        str = m.pre + '{' + m.body + escClose + m.post;
+        str = pre + '{' + m.body + escClose + m.post;
         return expand(str);
       }
       return [str];
@@ -164,7 +168,7 @@ function expand(str, isTop) {
         n = expand(n[0], false).map(embrace);
         if (n.length === 1) {
           return post.map(function(p) {
-            return m.pre + n[0] + p;
+            return pre + n[0] + p;
           });
         }
       }
