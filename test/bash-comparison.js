@@ -1,4 +1,5 @@
-const test = require('tape');
+const test = require('test');
+const assert = require('assert');
 const expand = require('..');
 const fs = require('fs');
 const resfile = __dirname + '/bash-results.txt';
@@ -7,7 +8,7 @@ const cases = fs.readFileSync(resfile, 'utf8').split('><><><><');
 // throw away the EOF marker
 cases.pop()
 
-test('matches bash expansions', function(t) {
+test('matches bash expansions', function() {
   cases.forEach(function(testcase) {
     let set = testcase.split('\n');
     const pattern = set.shift();
@@ -26,7 +27,6 @@ test('matches bash expansions', function(t) {
       })
     }
 
-    t.same(actual, set, pattern);
+    assert.deepStrictEqual(actual, set, pattern);
   });
-  t.end();
 })

@@ -1,10 +1,10 @@
-const test = require('tape');
+const test = require('test');
+const assert = require('assert');
 const expand = require('..');
 
-test('order', function(t) {
-  t.deepEqual(expand('a{d,c,b}e'), [
+test('order', function() {
+  assert.deepStrictEqual(expand('a{d,c,b}e'), [
     'ade', 'ace', 'abe'
   ]);
-  t.end();
 });
 
