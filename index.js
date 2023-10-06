@@ -1,4 +1,4 @@
-const balanced = require('balanced-match');
+import balanced from 'balanced-match';
 
 const escSlash = '\0SLASH'+Math.random()+'\0';
 const escOpen = '\0OPEN'+Math.random()+'\0';
@@ -71,7 +71,7 @@ function parseCommaParts(str) {
 /**
  * @param {string} str
  */
-function expandTop(str) {
+export default function expandTop(str) {
   if (!str)
     return [];
 
@@ -231,5 +231,3 @@ function expand(str, isTop) {
 
   return expansions;
 }
-
-module.exports = expandTop;

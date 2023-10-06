@@ -1,6 +1,6 @@
-const test = require('test');
-const assert = require('assert');
-const expand = require('..');
+import test from 'node:test';
+import assert from 'assert';
+import expand from '../index.js';
 
 test('numeric sequences', function() {
   assert.deepStrictEqual(expand('a{1..2}b{2..3}c'), [

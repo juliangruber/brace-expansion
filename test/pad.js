@@ -1,6 +1,6 @@
-const test = require('test');
-const assert = require('assert');
-const expand = require('..');
+import test from 'node:test';
+import assert from 'assert';
+import expand from '../index.js';
 
 test('pad', function() {
   assert.deepStrictEqual(expand('{9..11}'), [
