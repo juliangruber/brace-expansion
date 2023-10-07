@@ -94,6 +94,7 @@ npm install brace-expansion
 
 - [Julian Gruber](https://github.com/juliangruber)
 - [Isaac Z. Schlueter](https://github.com/isaacs)
+- [Haelwenn Monnier](https://github.com/lanodan)
 
 ## Sponsors
 
