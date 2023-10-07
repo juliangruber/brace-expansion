@@ -9,7 +9,7 @@ as known from sh/bash, in JavaScript.
 ## Example
 
 ```js
-import expand from 'brace-expansion';
+import expand from 'brace-expansion'
 
 expand('file-{a,b,c}.jpg')
 // => ['file-a.jpg', 'file-b.jpg', 'file-c.jpg']
@@ -45,7 +45,7 @@ expand('ppp{,config,oe{,conf}}')
 ## API
 
 ```js
-import expand from 'brace-expansion';
+import expand from 'brace-expansion'
 ```
 
 ### const expanded = expand(str)
