@@ -1,8 +1,9 @@
-const test = require('test');
-const assert = require('assert');
-const expand = require('..');
-const fs = require('fs');
-const resfile = __dirname + '/bash-results.txt';
+import test from 'node:test';
+import assert from 'assert';
+import expand from '../index.js';
+import fs from 'fs';
+
+const resfile = new URL('./bash-results.txt', import.meta.url);
 const cases = fs.readFileSync(resfile, 'utf8').split('><><><><');
 
 // throw away the EOF marker
