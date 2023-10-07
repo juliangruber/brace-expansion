@@ -1,19 +1,19 @@
-import test from 'node:test';
-import assert from 'assert';
-import expand from '../index.js';
-import fs from 'fs';
+import test from 'node:test'
+import assert from 'assert'
+import expand from '../index.js'
+import fs from 'fs'
 
-const resfile = new URL('./bash-results.txt', import.meta.url);
-const cases = fs.readFileSync(resfile, 'utf8').split('><><><><');
+const resfile = new URL('./bash-results.txt', import.meta.url)
+const cases = fs.readFileSync(resfile, 'utf8').split('><><><><')
 
 // throw away the EOF marker
 cases.pop()
 
-test('matches bash expansions', function() {
-  cases.forEach(function(testcase) {
-    let set = testcase.split('\n');
-    const pattern = set.shift();
-    const actual = expand(pattern);
+test('matches bash expansions', function () {
+  cases.forEach(function (testcase) {
+    let set = testcase.split('\n')
+    const pattern = set.shift()
+    const actual = expand(pattern)
 
     // If it expands to the empty string, then it's actually
     // just nothing, but Bash is a singly typed language, so
@@ -28,6 +28,6 @@ test('matches bash expansions', function() {
       })
     }
 
-    assert.deepStrictEqual(actual, set, pattern);
-  });
+    assert.deepStrictEqual(actual, set, pattern)
+  })
 })

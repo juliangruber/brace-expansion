@@ -1,11 +1,13 @@
-import expand from '..';
-import fs from 'fs';
+/* global bench */
 
-const resfile = new URL('../test/cases.txt', import.meta.url);
-const cases = fs.readFileSync(resfile, 'utf8').split('\n');
+import expand from '..'
+import fs from 'fs'
 
-bench('Average', function() {
-  cases.forEach(function(testcase) {
-    expand(testcase);
-  });
-});
+const resfile = new URL('../test/cases.txt', import.meta.url)
+const cases = fs.readFileSync(resfile, 'utf8').split('\n')
+
+bench('Average', function () {
+  cases.forEach(function (testcase) {
+    expand(testcase)
+  })
+})
