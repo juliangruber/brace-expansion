@@ -5,6 +5,16 @@ const escOpen = '\0OPEN' + Math.random() + '\0'
 const escClose = '\0CLOSE' + Math.random() + '\0'
 const escComma = '\0COMMA' + Math.random() + '\0'
 const escPeriod = '\0PERIOD' + Math.random() + '\0'
+const escSlashPattern = new RegExp(escSlash, 'g');
+const escOpenPattern = new RegExp(escOpen, 'g');
+const escClosePattern = new RegExp(escClose, 'g');
+const escCommaPattern = new RegExp(escComma, 'g');
+const escPeriodPattern = new RegExp(escPeriod, 'g');
+const slashPattern = /\\\\/g;
+const openPattern = /\\{/g;
+const closePattern = /\\}/g;
+const commaPattern = /\\,/g;
+const periodPattern = /\\./g;
 
 /**
  * @return {number}
@@ -19,22 +29,22 @@ function numeric (str) {
  * @param {string} str
  */
 function escapeBraces (str) {
-  return str.split('\\\\').join(escSlash)
-    .split('\\{').join(escOpen)
-    .split('\\}').join(escClose)
-    .split('\\,').join(escComma)
-    .split('\\.').join(escPeriod)
+  return str.replace(slashPattern, escSlash)
+    .replace(openPattern, escOpen)
+    .replace(closePattern, escClose)
+    .replace(commaPattern, escComma)
+    .replace(periodPattern, escPeriod);
 }
 
 /**
  * @param {string} str
  */
 function unescapeBraces (str) {
-  return str.split(escSlash).join('\\')
-    .split(escOpen).join('{')
-    .split(escClose).join('}')
-    .split(escComma).join(',')
-    .split(escPeriod).join('.')
+  return str.replace(escSlashPattern, '\\')
+    .replace(escOpenPattern, '{')
+    .replace(escClosePattern, '}')
+    .replace(escCommaPattern, ',')
+    .replace(escPeriodPattern, '.');
 }
 
 /**
