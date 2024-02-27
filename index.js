@@ -5,16 +5,16 @@ const escOpen = '\0OPEN' + Math.random() + '\0'
 const escClose = '\0CLOSE' + Math.random() + '\0'
 const escComma = '\0COMMA' + Math.random() + '\0'
 const escPeriod = '\0PERIOD' + Math.random() + '\0'
-const escSlashPattern = new RegExp(escSlash, 'g');
-const escOpenPattern = new RegExp(escOpen, 'g');
-const escClosePattern = new RegExp(escClose, 'g');
-const escCommaPattern = new RegExp(escComma, 'g');
-const escPeriodPattern = new RegExp(escPeriod, 'g');
-const slashPattern = /\\\\/g;
-const openPattern = /\\{/g;
-const closePattern = /\\}/g;
-const commaPattern = /\\,/g;
-const periodPattern = /\\./g;
+const escSlashPattern = new RegExp(escSlash, 'g')
+const escOpenPattern = new RegExp(escOpen, 'g')
+const escClosePattern = new RegExp(escClose, 'g')
+const escCommaPattern = new RegExp(escComma, 'g')
+const escPeriodPattern = new RegExp(escPeriod, 'g')
+const slashPattern = /\\\\/g
+const openPattern = /\\{/g
+const closePattern = /\\}/g
+const commaPattern = /\\,/g
+const periodPattern = /\\./g
 
 /**
  * @return {number}
@@ -33,7 +33,7 @@ function escapeBraces (str) {
     .replace(openPattern, escOpen)
     .replace(closePattern, escClose)
     .replace(commaPattern, escComma)
-    .replace(periodPattern, escPeriod);
+    .replace(periodPattern, escPeriod)
 }
 
 /**
@@ -44,7 +44,7 @@ function unescapeBraces (str) {
     .replace(escOpenPattern, '{')
     .replace(escClosePattern, '}')
     .replace(escCommaPattern, ',')
-    .replace(escPeriodPattern, '.');
+    .replace(escPeriodPattern, '.')
 }
 
 /**
