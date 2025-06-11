@@ -4,7 +4,6 @@ import expand from '../index.js'
 
 test('redos', function () {
 let str = "{a}" + ",".repeat(100000) + "\u0000";
-//let str = "{a}" + ",".repeat(100000) + "\n@";
     let startTime = performance.now();
     expand(str)
     let endTime = performance.now();
