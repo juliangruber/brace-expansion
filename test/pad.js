@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'assert'
-import expand from '../index.js'
+import { expand } from '../dist/esm/index.js'
 
 test('pad', function () {
   assert.deepStrictEqual(expand('{9..11}'), [

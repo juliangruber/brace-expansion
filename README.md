@@ -1,4 +1,7 @@
-# brace-expansion
+# @isaacs/brace-expansion
+
+A hybrid CJS/ESM TypeScript fork of
+[brace-expansion](http://npm.im/brace-expansion).
 
 [Brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html),
 as known from sh/bash, in JavaScript.
@@ -9,7 +12,7 @@ as known from sh/bash, in JavaScript.
 ## Example
 
 ```js
-import expand from 'brace-expansion'
+import { expand } from '@isaacs/brace-expansion'
 
 expand('file-{a,b,c}.jpg')
 // => ['file-a.jpg', 'file-b.jpg', 'file-c.jpg']
@@ -45,7 +48,7 @@ expand('ppp{,config,oe{,conf}}')
 ## API
 
 ```js
-import expand from 'brace-expansion'
+import { expand } from '@isaacs/brace-expansion'
 ```
 
 ### const expanded = expand(str)
@@ -81,53 +84,3 @@ An alphabetic sequence from `x` to `y` inclusive, with optional increment.
 number.
 
 For compatibility reasons, the string `${` is not eligible for brace expansion.
-
-## Installation
-
-With [npm](https://npmjs.org) do:
-
-```bash
-npm install brace-expansion
-```
-
-## Contributors
-
-- [Julian Gruber](https://github.com/juliangruber)
-- [Isaac Z. Schlueter](https://github.com/isaacs)
-- [Haelwenn Monnier](https://github.com/lanodan)
-
-## Sponsors
-
-This module is proudly supported by my [Sponsors](https://github.com/juliangruber/sponsors)!
-
-Do you want to support modules like this to improve their quality, stability and weigh in on new features? Then please consider donating to my [Patreon](https://www.patreon.com/juliangruber). Not sure how much of my modules you're using? Try [feross/thanks](https://github.com/feross/thanks)!
-
-## Security contact information
-
-To report a security vulnerability, please use the
-[Tidelift security contact](https://tidelift.com/security).
-Tidelift will coordinate the fix and disclosure.
-
-## License
-
-(MIT)
-
-Copyright (c) 2013 Julian Gruber &lt;julian@juliangruber.com&gt;
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.

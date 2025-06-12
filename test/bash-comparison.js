@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'assert'
-import expand from '../index.js'
+import { expand } from '../dist/esm/index.js'
 import fs from 'fs'
 
 const resfile = new URL('./bash-results.txt', import.meta.url)

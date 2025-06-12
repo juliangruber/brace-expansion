@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'assert'
-import expand from '../index.js'
+import { expand } from '../dist/esm/index.js'
 
 test('nested', function () {
   assert.deepStrictEqual(expand('{a,b{1..3},c}'), [

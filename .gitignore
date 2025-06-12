@@ -1,2 +1,5 @@
-node_modules
-*.sw*
+/node_modules
+/.tap
+/dist
+/docs
+.DS_Store

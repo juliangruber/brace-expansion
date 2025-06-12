@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'assert'
-import expand from '../index.js'
+import { expand } from '../dist/esm/index.js'
 
 test('redos', function () {
   const str = '{a}' + ','.repeat(100000) + '\u0000'

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'assert'
-import expand from '../index.js'
+import { expand } from '../dist/esm/index.js'
 
 test('numeric sequences', function () {
   assert.deepStrictEqual(expand('a{1..2}b{2..3}c'), [

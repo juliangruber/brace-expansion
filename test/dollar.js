@@ -2,7 +2,7 @@
 
 import test from 'node:test'
 import assert from 'assert'
-import expand from '../index.js'
+import { expand } from '../dist/esm/index.js'
 
 test('ignores ${', function () {
   assert.deepStrictEqual(expand('${1..3}'), ['${1..3}'])
