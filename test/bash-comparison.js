@@ -4,7 +4,10 @@ import { expand } from '../dist/esm/index.js'
 import fs from 'fs'
 
 const resfile = new URL('./bash-results.txt', import.meta.url)
-const cases = fs.readFileSync(resfile, 'utf8').split('><><><><')
+const cases = fs
+  .readFileSync(resfile, 'utf8')
+  .replace(/\r\n/g, '\n')
+  .split('><><><><')
 
 // throw away the EOF marker
 cases.pop()
