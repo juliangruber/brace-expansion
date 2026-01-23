@@ -82,6 +82,12 @@ number.
 
 For compatibility reasons, the string `${` is not eligible for brace expansion.
 
+## Security
+
+Depending on the shape of `str`, the returned array can become very large, or the algorithm can allocate a great number of stack frames. Don't pass unsanitized user input to this function, unless you know what you're doing.
+
+PRs are welcome for adding options `maxSize` and `maxDepth` to prevent OOM or call stack exceeded errors.
+
 ## Installation
 
 With [npm](https://npmjs.org) do:
