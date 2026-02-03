@@ -59,14 +59,14 @@ found, `[str]` is returned.
 Valid expansions are:
 
 ```js
-/^(.*,)+(.+)?$/
+;/^(.*,)+(.+)?$/
 // {a,b,...}
 ```
 
 A comma separated list of options, like `{a,b}` or `{a,{b,c}}` or `{,a,}`.
 
 ```js
-/^-?\d+\.\.-?\d+(\.\.-?\d+)?$/
+;/^-?\d+\.\.-?\d+(\.\.-?\d+)?$/
 // {x..y[..incr]}
 ```
 
@@ -75,7 +75,7 @@ If `x` or `y` start with a leading `0`, all the numbers will be padded
 to have equal length. Negative numbers and backwards iteration work too.
 
 ```js
-/^-?\d+\.\.-?\d+(\.\.-?\d+)?$/
+;/^-?\d+\.\.-?\d+(\.\.-?\d+)?$/
 // {x..y[..incr]}
 ```
 

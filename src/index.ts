@@ -122,7 +122,9 @@ function expand_(str: string, isTop?: boolean): string[] {
     }
   } else {
     const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body)
-    const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body)
+    const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(
+      m.body,
+    )
     const isSequence = isNumericSequence || isAlphaSequence
     const isOptions = m.body.indexOf(',') >= 0
     if (!isSequence && !isOptions) {
