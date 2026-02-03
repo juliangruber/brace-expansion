@@ -142,3 +142,32 @@ t.test('alphabetic sequences with step count', async t => {
   t.strictSame(expand('{a..k..2}'), ['a', 'c', 'e', 'g', 'i', 'k'])
   t.strictSame(expand('{b..k..2}'), ['b', 'd', 'f', 'h', 'j'])
 })
+
+// https://github.com/isaacs/brace-expansion/security/advisories/GHSA-7h2j-956f-4vf2
+t.test('sequence dos', async t => {
+  const str = '{1..10}'.repeat(10)
+  const startTime = performance.now()
+  const expanded = expand(str)
+  t.equal(expanded.length, 100_000, 'expansion is limited')
+  const expanded10 = expand(str, { max: 10 })
+  t.strictSame(expanded10, [
+    '1111111111',
+    '1111111112',
+    '1111111113',
+    '1111111114',
+    '1111111115',
+    '1111111116',
+    '1111111117',
+    '1111111118',
+    '1111111119',
+    '11111111110',
+  ])
+
+  t.equal(expanded10.length, 10, 'expansion is limited')
+  const endTime = performance.now()
+  const timeTaken = endTime - startTime
+  t.ok(
+    timeTaken < 500,
+    `Expected time (${timeTaken}ms) to be less than 500ms`,
+  )
+})

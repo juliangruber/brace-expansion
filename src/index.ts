@@ -16,6 +16,8 @@ const closePattern = /\\}/g
 const commaPattern = /\\,/g
 const periodPattern = /\\./g
 
+export const EXPANSION_MAX = 100_000
+
 function numeric(str: string) {
   return !isNaN(str as any) ? parseInt(str, 10) : str.charCodeAt(0)
 }
@@ -70,10 +72,16 @@ function parseCommaParts(str: string) {
   return parts
 }
 
-export function expand(str: string) {
+export type BraceExpansionOptions = {
+  max?: number
+}
+
+export function expand(str: string, options: BraceExpansionOptions = {}) {
   if (!str) {
     return []
   }
+
+  const { max = EXPANSION_MAX } = options
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -85,7 +93,7 @@ export function expand(str: string) {
     str = '\\{\\}' + str.slice(2)
   }
 
-  return expand_(escapeBraces(str), true).map(unescapeBraces)
+  return expand_(escapeBraces(str), max, true).map(unescapeBraces)
 }
 
 function embrace(str: string) {
@@ -104,7 +112,7 @@ function gte(i: number, y: number) {
   return i >= y
 }
 
-function expand_(str: string, isTop?: boolean): string[] {
+function expand_(str: string, max: number, isTop: boolean): string[] {
   /** @type {string[]} */
   const expansions: string[] = []
 
@@ -113,10 +121,10 @@ function expand_(str: string, isTop?: boolean): string[] {
 
   // no need to expand pre, since it is guaranteed to be free of brace-sets
   const pre = m.pre
-  const post: string[] = m.post.length ? expand_(m.post, false) : ['']
+  const post: string[] = m.post.length ? expand_(m.post, max, false) : ['']
 
   if (/\$$/.test(m.pre)) {
-    for (let k = 0; k < post.length; k++) {
+    for (let k = 0; k < post.length && k < max; k++) {
       const expansion = pre + '{' + m.body + '}' + post[k]
       expansions.push(expansion)
     }
@@ -131,7 +139,7 @@ function expand_(str: string, isTop?: boolean): string[] {
       // {a},b}
       if (m.post.match(/,(?!,).*\}/)) {
         str = m.pre + '{' + m.body + escClose + m.post
-        return expand_(str)
+        return expand_(str, max, true)
       }
       return [str]
     }
@@ -143,7 +151,7 @@ function expand_(str: string, isTop?: boolean): string[] {
       n = parseCommaParts(m.body)
       if (n.length === 1 && n[0] !== undefined) {
         // x{{a,b}}y ==> x{a}y x{b}y
-        n = expand_(n[0], false).map(embrace)
+        n = expand_(n[0], max, false).map(embrace)
         //XXX is this necessary? Can't seem to hit it in tests.
         /* c8 ignore start */
         if (n.length === 1) {
@@ -200,12 +208,12 @@ function expand_(str: string, isTop?: boolean): string[] {
       N = []
 
       for (let j = 0; j < n.length; j++) {
-        N.push.apply(N, expand_(n[j] as string, false))
+        N.push.apply(N, expand_(n[j] as string, max, false))
       }
     }
 
     for (let j = 0; j < N.length; j++) {
-      for (let k = 0; k < post.length; k++) {
+      for (let k = 0; k < post.length && expansions.length < max; k++) {
         const expansion = pre + N[j] + post[k]
         if (!isTop || isSequence || expansion) {
           expansions.push(expansion)
