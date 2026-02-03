@@ -1,7 +1,7 @@
 {
   "name": "@isaacs/brace-expansion",
   "description": "Brace expansion as known from sh/bash",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "files": [
     "dist"
   ],
