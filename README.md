@@ -1,7 +1,4 @@
-# @isaacs/brace-expansion
-
-A hybrid CJS/ESM TypeScript fork of
-[brace-expansion](http://npm.im/brace-expansion).
+# brace-expansion
 
 [Brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html),
 as known from sh/bash, in JavaScript.
@@ -12,7 +9,7 @@ as known from sh/bash, in JavaScript.
 ## Example
 
 ```js
-import { expand } from '@isaacs/brace-expansion'
+import { expand } from 'brace-expansion'
 
 expand('file-{a,b,c}.jpg')
 // => ['file-a.jpg', 'file-b.jpg', 'file-c.jpg']

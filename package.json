@@ -1,5 +1,5 @@
 {
-  "name": "@isaacs/brace-expansion",
+  "name": "brace-expansion",
   "description": "Brace expansion as known from sh/bash",
   "version": "5.0.1",
   "files": [
@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@types/brace-expansion": "^1.1.2",
-    "@types/node": "^24.0.0",
+    "@types/node": "^25.2.1",
     "mkdirp": "^3.0.1",
     "prettier": "^3.3.2",
     "tap": "^21.5.0",
@@ -42,7 +42,7 @@
     "typedoc": "^0.28.5"
   },
   "dependencies": {
-    "@isaacs/balanced-match": "^4.0.1"
+    "balanced-match": "^4.0.2"
   },
   "license": "MIT",
   "engines": {
@@ -59,6 +59,6 @@
   "module": "./dist/esm/index.js",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/isaacs/brace-expansion.git"
+    "url": "git+ssh://git@github.com/juliangruber/brace-expansion.git"
   }
 }

@@ -1,4 +1,4 @@
-import { balanced } from '@isaacs/balanced-match'
+import { balanced } from 'balanced-match'
 
 const escSlash = '\0SLASH' + Math.random() + '\0'
 const escOpen = '\0OPEN' + Math.random() + '\0'
