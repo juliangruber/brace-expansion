@@ -1,4 +1,4 @@
-import balanced from 'balanced-match'
+import { balanced } from 'balanced-match'
 
 const escSlash = '\0SLASH' + Math.random() + '\0'
 const escOpen = '\0OPEN' + Math.random() + '\0'
@@ -16,31 +16,24 @@ const closePattern = /\\}/g
 const commaPattern = /\\,/g
 const periodPattern = /\\./g
 
-/**
- * @return {number}
- */
-function numeric (str) {
-  return !isNaN(str)
-    ? parseInt(str, 10)
-    : str.charCodeAt(0)
+export const EXPANSION_MAX = 100_000
+
+function numeric(str: string) {
+  return !isNaN(str as any) ? parseInt(str, 10) : str.charCodeAt(0)
 }
 
-/**
- * @param {string} str
- */
-function escapeBraces (str) {
-  return str.replace(slashPattern, escSlash)
+function escapeBraces(str: string) {
+  return str
+    .replace(slashPattern, escSlash)
     .replace(openPattern, escOpen)
     .replace(closePattern, escClose)
     .replace(commaPattern, escComma)
     .replace(periodPattern, escPeriod)
 }
 
-/**
- * @param {string} str
- */
-function unescapeBraces (str) {
-  return str.replace(escSlashPattern, '\\')
+function unescapeBraces(str: string) {
+  return str
+    .replace(escSlashPattern, '\\')
     .replace(escOpenPattern, '{')
     .replace(escClosePattern, '}')
     .replace(escCommaPattern, ',')
@@ -51,15 +44,18 @@ function unescapeBraces (str) {
  * Basically just str.split(","), but handling cases
  * where we have nested braced sections, which should be
  * treated as individual members, like {a,{b,c},d}
- * @param {string} str
  */
-function parseCommaParts (str) {
-  if (!str) { return [''] }
+function parseCommaParts(str: string) {
+  if (!str) {
+    return ['']
+  }
 
-  const parts = []
+  const parts: string[] = []
   const m = balanced('{', '}', str)
 
-  if (!m) { return str.split(',') }
+  if (!m) {
+    return str.split(',')
+  }
 
   const { pre, body, post } = m
   const p = pre.split(',')
@@ -67,7 +63,7 @@ function parseCommaParts (str) {
   p[p.length - 1] += '{' + body + '}'
   const postParts = parseCommaParts(post)
   if (post.length) {
-    p[p.length - 1] += postParts.shift()
+    ;(p[p.length - 1] as string) += postParts.shift()
     p.push.apply(p, postParts)
   }
 
@@ -76,11 +72,16 @@ function parseCommaParts (str) {
   return parts
 }
 
-/**
- * @param {string} str
- */
-export default function expandTop (str) {
-  if (!str) { return [] }
+export type BraceExpansionOptions = {
+  max?: number
+}
+
+export function expand(str: string, options: BraceExpansionOptions = {}) {
+  if (!str) {
+    return []
+  }
+
+  const { max = EXPANSION_MAX } = options
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -92,102 +93,84 @@ export default function expandTop (str) {
     str = '\\{\\}' + str.slice(2)
   }
 
-  return expand(escapeBraces(str), true).map(unescapeBraces)
+  return expand_(escapeBraces(str), max, true).map(unescapeBraces)
 }
 
-/**
- * @param {string} str
- */
-function embrace (str) {
+function embrace(str: string) {
   return '{' + str + '}'
 }
 
-/**
- * @param {string} el
- */
-function isPadded (el) {
+function isPadded(el: string) {
   return /^-?0\d/.test(el)
 }
 
-/**
- * @param {number} i
- * @param {number} y
- */
-function lte (i, y) {
+function lte(i: number, y: number) {
   return i <= y
 }
 
-/**
- * @param {number} i
- * @param {number} y
- */
-function gte (i, y) {
+function gte(i: number, y: number) {
   return i >= y
 }
 
-/**
- * @param {string} str
- * @param {boolean} [isTop]
- */
-function expand (str, isTop) {
+function expand_(str: string, max: number, isTop: boolean): string[] {
   /** @type {string[]} */
-  const expansions = []
+  const expansions: string[] = []
 
   const m = balanced('{', '}', str)
   if (!m) return [str]
 
   // no need to expand pre, since it is guaranteed to be free of brace-sets
   const pre = m.pre
-  const post = m.post.length
-    ? expand(m.post, false)
-    : ['']
+  const post: string[] = m.post.length ? expand_(m.post, max, false) : ['']
 
   if (/\$$/.test(m.pre)) {
-    for (let k = 0; k < post.length; k++) {
+    for (let k = 0; k < post.length && k < max; k++) {
       const expansion = pre + '{' + m.body + '}' + post[k]
       expansions.push(expansion)
     }
   } else {
     const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body)
-    const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body)
+    const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(
+      m.body,
+    )
     const isSequence = isNumericSequence || isAlphaSequence
     const isOptions = m.body.indexOf(',') >= 0
     if (!isSequence && !isOptions) {
       // {a},b}
       if (m.post.match(/,(?!,).*\}/)) {
         str = m.pre + '{' + m.body + escClose + m.post
-        return expand(str)
+        return expand_(str, max, true)
       }
       return [str]
     }
 
-    let n
+    let n: string[]
     if (isSequence) {
       n = m.body.split(/\.\./)
     } else {
       n = parseCommaParts(m.body)
-      if (n.length === 1) {
+      if (n.length === 1 && n[0] !== undefined) {
         // x{{a,b}}y ==> x{a}y x{b}y
-        n = expand(n[0], false).map(embrace)
+        n = expand_(n[0], max, false).map(embrace)
+        //XXX is this necessary? Can't seem to hit it in tests.
+        /* c8 ignore start */
         if (n.length === 1) {
-          return post.map(function (p) {
-            return m.pre + n[0] + p
-          })
+          return post.map(p => m.pre + n[0] + p)
         }
+        /* c8 ignore stop */
       }
     }
 
     // at this point, n is the parts, and we know it's not a comma set
     // with a single entry.
-    let N
+    let N: string[]
 
-    if (isSequence) {
+    if (isSequence && n[0] !== undefined && n[1] !== undefined) {
       const x = numeric(n[0])
       const y = numeric(n[1])
       const width = Math.max(n[0].length, n[1].length)
-      let incr = n.length === 3
-        ? Math.abs(numeric(n[2]))
-        : 1
+      let incr =
+        n.length === 3 && n[2] !== undefined ? Math.abs(numeric(n[2])) : 1
       let test = lte
       const reverse = y < x
       if (reverse) {
@@ -202,14 +185,20 @@ function expand (str, isTop) {
         let c
         if (isAlphaSequence) {
           c = String.fromCharCode(i)
-          if (c === '\\') { c = '' }
+          if (c === '\\') {
+            c = ''
+          }
         } else {
           c = String(i)
           if (pad) {
             const need = width - c.length
             if (need > 0) {
               const z = new Array(need + 1).join('0')
-              if (i < 0) { c = '-' + z + c.slice(1) } else { c = z + c }
+              if (i < 0) {
+                c = '-' + z + c.slice(1)
+              } else {
+                c = z + c
+              }
             }
           }
         }
@@ -219,14 +208,16 @@ function expand (str, isTop) {
       N = []
 
       for (let j = 0; j < n.length; j++) {
-        N.push.apply(N, expand(n[j], false))
+        N.push.apply(N, expand_(n[j] as string, max, false))
       }
     }
 
     for (let j = 0; j < N.length; j++) {
-      for (let k = 0; k < post.length; k++) {
+      for (let k = 0; k < post.length && expansions.length < max; k++) {
         const expansion = pre + N[j] + post[k]
-        if (!isTop || isSequence || expansion) { expansions.push(expansion) }
+        if (!isTop || isSequence || expansion) {
+          expansions.push(expansion)
+        }
       }
     }
   }
