@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ['main']
   pull_request_target:
     paths:
       - 'src/**'
@@ -12,6 +12,8 @@ on:
       - '*.ts'
       - 'lib/**'
       - 'scripts/**'
+      - '.github/workflows/ci.yml'
+      - 'package.json'
   workflow_dispatch:
 
 permissions:
@@ -21,7 +23,7 @@ jobs:
   build:
     strategy:
       matrix:
-        node-version: [22.x, 24.x]
+        node-version: [18.x, 20.x, 22.x, 24.x, 25.x]
         platform:
         - os: ubuntu-latest
           shell: bash
