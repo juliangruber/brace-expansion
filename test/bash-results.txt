@@ -1087,4 +1087,4 @@ A{b,{d,e},{f,g}}Z
 [x{b}y]><><><><x{{b}}y
 [x{{b}}y]><><><><src/{\[ui\],abc}/*.ts
 src/\[ui\]/*.ts
-src/abc/*.ts
+src/abc/*.ts><><><><
