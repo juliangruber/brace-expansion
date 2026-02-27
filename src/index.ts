@@ -14,7 +14,7 @@ const slashPattern = /\\\\/g
 const openPattern = /\\{/g
 const closePattern = /\\}/g
 const commaPattern = /\\,/g
-const periodPattern = /\\./g
+const periodPattern = /\\\./g
 
 export const EXPANSION_MAX = 100_000
 

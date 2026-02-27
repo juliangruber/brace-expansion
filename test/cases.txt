@@ -185,3 +185,5 @@ y{},a}x
 {{},a}}b
 {}{{},a}}b
 {}a,b}c
+# make sure brackets work #87
+src/{\[ui\],abc}/*.ts
