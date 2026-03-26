@@ -176,7 +176,7 @@ function expand (str, isTop) {
       const y = numeric(n[1])
       const width = Math.max(n[0].length, n[1].length)
       let incr = n.length === 3
-        ? Math.abs(numeric(n[2]))
+        ? Math.max(Math.abs(numeric(n[2])), 1)
         : 1
       let test = lte
       const reverse = y < x
