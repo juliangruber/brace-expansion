@@ -48,3 +48,25 @@ test('alphabetic sequences with step count', function(t) {
   t.end();
 });
 
+test('sequence dos', function(t) {
+  var str = '{1..10}'.repeat(10);
+  var expanded = expand(str);
+  var expanded10 = expand(str, { max: 10 });
+
+  t.equal(expanded.length, 100000, 'expansion is limited');
+  t.deepEqual(expanded10, [
+    '1111111111',
+    '1111111112',
+    '1111111113',
+    '1111111114',
+    '1111111115',
+    '1111111116',
+    '1111111117',
+    '1111111118',
+    '1111111119',
+    '11111111110'
+  ], 'custom max truncates expansion');
+  t.equal(expanded10.length, 10, 'custom max is respected');
+  t.end();
+});
+
