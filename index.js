@@ -8,9 +8,6 @@ var escOpen = '\0OPEN'+Math.random()+'\0';
 var escClose = '\0CLOSE'+Math.random()+'\0';
 var escComma = '\0COMMA'+Math.random()+'\0';
 var escPeriod = '\0PERIOD'+Math.random()+'\0';
-var EXPANSION_MAX = 100000;
-
-module.exports.EXPANSION_MAX = EXPANSION_MAX;
 
 function numeric(str) {
   return parseInt(str, 10) == str
@@ -70,7 +67,7 @@ function expandTop(str, options) {
     return [];
 
   options = options || {};
-  var max = options.max == null ? EXPANSION_MAX : options.max;
+  var max = options.max == null ? Infinity : options.max;
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
