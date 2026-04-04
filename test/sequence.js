@@ -50,10 +50,8 @@ test('alphabetic sequences with step count', function(t) {
 
 test('sequence dos', function(t) {
   var str = '{1..10}'.repeat(10);
-  var expanded = expand(str);
   var expanded10 = expand(str, { max: 10 });
 
-  t.equal(expanded.length, 100000, 'expansion is limited');
   t.deepEqual(expanded10, [
     '1111111111',
     '1111111112',
@@ -67,5 +65,8 @@ test('sequence dos', function(t) {
     '11111111110'
   ], 'custom max truncates expansion');
   t.equal(expanded10.length, 10, 'custom max is respected');
+
+  var large = '{1..11}'.repeat(5);
+  t.equal(expand(large).length, 161051, 'default is unbounded');
   t.end();
 });
