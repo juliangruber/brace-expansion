@@ -144,7 +144,7 @@ t.test('alphabetic sequences with step count', async t => {
 })
 
 // https://github.com/isaacs/brace-expansion/security/advisories/GHSA-7h2j-956f-4vf2
-t.test('sequence dos', async t => {
+t.test('multiple sequences max', async t => {
   const str = '{1..10}'.repeat(10)
   const startTime = performance.now()
   const expanded = expand(str)
@@ -164,6 +164,18 @@ t.test('sequence dos', async t => {
   ])
 
   t.equal(expanded10.length, 10, 'expansion is limited')
+  const endTime = performance.now()
+  const timeTaken = endTime - startTime
+  t.ok(
+    timeTaken < 500,
+    `Expected time (${timeTaken}ms) to be less than 500ms`,
+  )
+})
+
+t.test('single sequence max', async t => {
+  const str = '{1..100000000}'
+  const startTime = performance.now()
+  expand(str, { max: 10 })
   const endTime = performance.now()
   const timeTaken = endTime - startTime
   t.ok(

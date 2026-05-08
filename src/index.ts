@@ -183,7 +183,7 @@ function expand_(str: string, max: number, isTop: boolean): string[] {
 
       N = []
 
-      for (let i = x; test(i, y); i += incr) {
+      for (let i = x; test(i, y) && N.length < max; i += incr) {
         let c
         if (isAlphaSequence) {
           c = String.fromCharCode(i)
