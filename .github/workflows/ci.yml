@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: ['main']
-  pull_request_target:
+  pull_request:
     paths:
       - 'src/**'
       - 'test/**'
@@ -42,7 +42,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Use Nodejs ${{ matrix.node-version }}
         uses: actions/setup-node@v6
