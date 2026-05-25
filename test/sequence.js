@@ -48,7 +48,7 @@ test('alphabetic sequences with step count', function(t) {
   t.end();
 });
 
-test('sequence dos', function(t) {
+test('multiple sequences max', function(t) {
   var str = '{1..10}'.repeat(10);
   var expanded10 = expand(str, { max: 10 });
 
@@ -71,3 +71,15 @@ test('sequence dos', function(t) {
   t.end();
 });
 
+test('single sequence max', function(t) {
+  const str = '{1..100000000}';
+  var expanded = expand(str, { max: 10 });
+  t.deepEqual(expanded,
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+    'custom max truncates expansion');
+  t.equal(expanded.length, 10, 'custom max is respected');
+
+  var large = '{1..10000}';
+  t.equal(expand(large).length, 10000, 'default is unbounded');
+  t.end();
+});

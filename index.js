@@ -166,7 +166,7 @@ function expand(str, max, isTop) {
 
     N = [];
 
-    for (var i = x; test(i, y); i += incr) {
+    for (var i = x; test(i, y) && N.length < max; i += incr) {
       var c;
       if (isAlphaSequence) {
         c = String.fromCharCode(i);
