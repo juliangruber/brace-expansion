@@ -103,6 +103,9 @@ function gte(i, y) {
 function expand(str, max, isTop) {
   var expansions = [];
 
+  // The `{a},b}` rewrite below restarts expansion on a rewritten string with
+  // the same `max` and `isTop = true`. Loop instead of recursing so a long run
+  // of non-expanding `{}` groups can't exhaust the call stack.
   for (;;) {
     var m = balanced('{', '}', str);
     if (!m || /\$$/.test(m.pre)) return [str];
