@@ -1,8 +1,7 @@
-import test from 'node:test';
-import assert from 'assert';
-import expand from '../index.js';
+var test = require('tape');
+var expand = require('..');
 
-test('unbound recursion', () => {
+test('unbound recursion', async t => {
     const n = 5000
     const parts = []
     for (let i = 0; i < n; i++) parts.push('{}')
@@ -11,6 +10,7 @@ test('unbound recursion', () => {
     const expanded = expand(str)
     const endTime = performance.now()
     const duration = endTime - startTime
-    assert.deepStrictEqual(expanded, [str], 'does not expand')
-    assert.ok(duration < 1000, `expected expansion to be less than 1000ms: ${duration}ms`)
+    t.deepEqual(expanded, [str], 'does not expand')
+    t.ok(duration < 1000, `expected expansion to be less than 1000ms: ${duration}ms`)
+    t.end()
 })
