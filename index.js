@@ -132,9 +132,12 @@ function expand(str, max, isTop) {
       return [str];
     }
 
-    var post = m.post.length
-        ? expand(m.post, max, false)
-        : [''];
+    // Only expand post once we know this brace set actually expands. Computing
+    // it before the early returns above expanded post a second time on every
+    // non-expanding `{}`, which is what made inputs like `a{},{},{}...` blow up
+    // exponentially.
+    const post =
+      m.post.length ? expand(m.post, max, false) : ['']
     var n;
     if (isSequence) {
       n = m.body.split(/\.\./);
