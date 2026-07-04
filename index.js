@@ -115,7 +115,8 @@ function expand(str, max, isTop) {
       // {a},b}
       if (m.post.match(/,(?!,).*\}/)) {
         str = m.pre + '{' + m.body + escClose + m.post;
-        continue;
+        isTop = true
+        continue
       }
       return [str];
     }
