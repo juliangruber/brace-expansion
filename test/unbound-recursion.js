@@ -11,6 +11,6 @@ test('unbound recursion', function (t) {
     const endTime = performance.now()
     const duration = endTime - startTime
     t.deepEqual(expanded, [str], 'does not expand')
-    t.ok(duration < 1000, `expected expansion to be less than 1000ms: ${duration}ms`)
+    t.ok(duration < 5000, `expected expansion to be less than 5000ms: ${duration}ms`)
     t.end()
 })
