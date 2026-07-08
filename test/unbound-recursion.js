@@ -1,7 +1,7 @@
 var test = require('tape');
 var expand = require('..');
 
-test('unbound recursion', async t => {
+test('unbound recursion', function (t) {
     const n = 5000
     const parts = []
     for (let i = 0; i < n; i++) parts.push('{}')
