@@ -18,6 +18,18 @@ const periodPattern = /\\\./g
 
 export const EXPANSION_MAX = 100_000
 
+// `EXPANSION_MAX` caps the *number* of expansions, but not their length. An
+// input like `'{a,b}'.repeat(1500)` stays under that count - its output is
+// truncated to 100k results - while making every result ~1500 characters
+// long. The result set, and the intermediate arrays built while combining
+// brace sets, then grow large enough to exhaust memory and crash the process
+// (CVE-2026-14257). `EXPANSION_MAX_LENGTH` bounds the total number of
+// characters the accumulator may hold at any point, so memory stays flat no
+// matter how many brace groups are chained. The limit sits well above any
+// realistic expansion (100k results hitting `EXPANSION_MAX` measure ~1M
+// characters) so legitimate input is unaffected.
+export const EXPANSION_MAX_LENGTH = 4_000_000
+
 function numeric(str: string) {
   return !isNaN(str as any) ? parseInt(str, 10) : str.charCodeAt(0)
 }
@@ -74,6 +86,7 @@ function parseCommaParts(str: string) {
 
 export type BraceExpansionOptions = {
   max?: number
+  maxLength?: number
 }
 
 export function expand(str: string, options: BraceExpansionOptions = {}) {
@@ -81,7 +94,7 @@ export function expand(str: string, options: BraceExpansionOptions = {}) {
     return []
   }
 
-  const { max = EXPANSION_MAX } = options
+  const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH } = options
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -93,7 +106,7 @@ export function expand(str: string, options: BraceExpansionOptions = {}) {
     str = '\\{\\}' + str.slice(2)
   }
 
-  return expand_(escapeBraces(str), max, true).map(unescapeBraces)
+  return expand_(escapeBraces(str), max, maxLength, true).map(unescapeBraces)
 }
 
 function embrace(str: string) {
@@ -112,28 +125,138 @@ function gte(i: number, y: number) {
   return i >= y
 }
 
-function expand_(str: string, max: number, isTop: boolean): string[] {
-  /** @type {string[]} */
-  const expansions: string[] = []
+// Build `{ acc[a] + pre + values[v] }` for every combination, capping the
+// number of results at `max` and the total number of characters at `maxLength`.
+// This is the one place output grows, so bounding it here keeps the single
+// accumulator - and therefore memory - flat regardless of how many brace groups
+// are combined (CVE-2026-14257).
+function combine(
+  acc: string[],
+  pre: string,
+  values: string[],
+  max: number,
+  maxLength: number,
+  dropEmpties: boolean,
+): string[] {
+  const out: string[] = []
+  let length = 0
+  for (let a = 0; a < acc.length; a++) {
+    for (let v = 0; v < values.length; v++) {
+      if (out.length >= max) return out
+      const expansion = (acc[a] as string) + pre + values[v]
+      // Bash drops empty results at the top level. Skip them before they count
+      // against `max`, so `max` bounds the number of *kept* results.
+      if (dropEmpties && !expansion) continue
+      if (length + expansion.length > maxLength) return out
+      out.push(expansion)
+      length += expansion.length
+    }
+  }
+  return out
+}
 
-  // The `{a},b}` rewrite below restarts expansion on a rewritten string with
-  // the same `max` and `isTop = true`. Loop instead of recursing so a long run
-  // of non-expanding `{}` groups can't exhaust the call stack.
+// The expansion values of a single numeric (`1..5`) or alphabetic (`a..e..2`)
+// sequence body.
+function expandSequence(
+  body: string,
+  isAlphaSequence: boolean,
+  max: number,
+): string[] {
+  const n = body.split(/\.\./)
+  const N: string[] = []
+  // A sequence body always splits into two or three parts, but the compiler
+  // can't know that.
+  /* c8 ignore start */
+  if (n[0] === undefined || n[1] === undefined) {
+    return N
+  }
+  /* c8 ignore stop */
+  const x = numeric(n[0])
+  const y = numeric(n[1])
+  const width = Math.max(n[0].length, n[1].length)
+  let incr =
+    n.length === 3 && n[2] !== undefined ?
+      Math.max(Math.abs(numeric(n[2])), 1)
+    : 1
+  let test = lte
+  const reverse = y < x
+  if (reverse) {
+    incr *= -1
+    test = gte
+  }
+  const pad = n.some(isPadded)
+
+  for (let i = x; test(i, y) && N.length < max; i += incr) {
+    let c
+    if (isAlphaSequence) {
+      c = String.fromCharCode(i)
+      if (c === '\\') {
+        c = ''
+      }
+    } else {
+      c = String(i)
+      if (pad) {
+        const need = width - c.length
+        if (need > 0) {
+          const z = new Array(need + 1).join('0')
+          if (i < 0) {
+            c = '-' + z + c.slice(1)
+          } else {
+            c = z + c
+          }
+        }
+      }
+    }
+    N.push(c)
+  }
+  return N
+}
+
+function expand_(
+  str: string,
+  max: number,
+  maxLength: number,
+  isTop: boolean,
+): string[] {
+  // Consume the string's top-level brace groups left to right, threading a
+  // running set of combined prefixes (`acc`). Expanding the tail iteratively -
+  // rather than recursing on `m.post` once per group - keeps the native stack
+  // depth constant, so deeply chained input (`'{a,b}'.repeat(3000)`) can no
+  // longer overflow the stack, and leaves a single accumulator whose size
+  // `maxLength` bounds directly (CVE-2026-14257).
+  let acc: string[] = ['']
+
+  // Bash drops empty results, but only when the *first* top-level group is a
+  // comma set - a sequence like `{a..\}` may legitimately yield ''. The drop
+  // is on the final strings, so it is applied to whichever `combine` produces
+  // them (the one with no brace set left in the tail).
+  let dropEmpties = false
+  let firstGroup = true
+
   for (;;) {
     const m = balanced('{', '}', str)
-    if (!m) return [str]
+
+    // No brace set left: the rest of the string is literal.
+    if (!m) {
+      return combine(acc, str, [''], max, maxLength, dropEmpties)
+    }
 
     // no need to expand pre, since it is guaranteed to be free of brace-sets
     const pre = m.pre
 
-    if (/\$$/.test(m.pre)) {
-      const post: string[] =
-        m.post.length ? expand_(m.post, max, false) : ['']
-      for (let k = 0; k < post.length && k < max; k++) {
-        const expansion = pre + '{' + m.body + '}' + post[k]
-        expansions.push(expansion)
-      }
-      return expansions
+    if (/\$$/.test(pre)) {
+      acc = combine(
+        acc,
+        pre + '{' + m.body + '}',
+        [''],
+        max,
+        maxLength,
+        dropEmpties && !m.post.length,
+      )
+      firstGroup = false
+      if (!m.post.length) break
+      str = m.post
+      continue
     }
 
     const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body)
@@ -149,95 +272,58 @@ function expand_(str: string, max: number, isTop: boolean): string[] {
         isTop = true
         continue
       }
-      return [str]
+      // Nothing here expands, so the whole remaining string is literal.
+      return combine(
+        acc,
+        pre + '{' + m.body + '}' + m.post,
+        [''],
+        max,
+        maxLength,
+        dropEmpties,
+      )
     }
 
-    // Only expand post once we know this brace set actually expands. Computing
-    // it before the early returns above expanded post a second time on every
-    // non-expanding `{}`, which is what made inputs like `a{},{},{}...` blow up
-    // exponentially.
-    const post: string[] =
-      m.post.length ? expand_(m.post, max, false) : ['']
+    if (firstGroup) {
+      dropEmpties = isTop && !isSequence
+      firstGroup = false
+    }
 
-    let n: string[]
+    let values: string[]
     if (isSequence) {
-      n = m.body.split(/\.\./)
+      values = expandSequence(m.body, isAlphaSequence, max)
     } else {
-      n = parseCommaParts(m.body)
+      let n = parseCommaParts(m.body)
       if (n.length === 1 && n[0] !== undefined) {
         // x{{a,b}}y ==> x{a}y x{b}y
-        n = expand_(n[0], max, false).map(embrace)
+        n = expand_(n[0], max, maxLength, false).map(embrace)
         //XXX is this necessary? Can't seem to hit it in tests.
         /* c8 ignore start */
         if (n.length === 1) {
-          return post.map(p => m.pre + n[0] + p)
+          acc = combine(
+            acc,
+            pre + n[0],
+            [''],
+            max,
+            maxLength,
+            dropEmpties && !m.post.length,
+          )
+          if (!m.post.length) break
+          str = m.post
+          continue
         }
         /* c8 ignore stop */
       }
-    }
 
-    // at this point, n is the parts, and we know it's not a comma set
-    // with a single entry.
-    let N: string[]
-
-    if (isSequence && n[0] !== undefined && n[1] !== undefined) {
-      const x = numeric(n[0])
-      const y = numeric(n[1])
-      const width = Math.max(n[0].length, n[1].length)
-      let incr =
-        n.length === 3 && n[2] !== undefined ?
-          Math.max(Math.abs(numeric(n[2])), 1)
-        : 1
-      let test = lte
-      const reverse = y < x
-      if (reverse) {
-        incr *= -1
-        test = gte
-      }
-      const pad = n.some(isPadded)
-
-      N = []
-
-      for (let i = x; test(i, y) && N.length < max; i += incr) {
-        let c
-        if (isAlphaSequence) {
-          c = String.fromCharCode(i)
-          if (c === '\\') {
-            c = ''
-          }
-        } else {
-          c = String(i)
-          if (pad) {
-            const need = width - c.length
-            if (need > 0) {
-              const z = new Array(need + 1).join('0')
-              if (i < 0) {
-                c = '-' + z + c.slice(1)
-              } else {
-                c = z + c
-              }
-            }
-          }
-        }
-        N.push(c)
-      }
-    } else {
-      N = []
-
+      values = []
       for (let j = 0; j < n.length; j++) {
-        N.push.apply(N, expand_(n[j] as string, max, false))
+        values.push.apply(values, expand_(n[j] as string, max, maxLength, false))
       }
     }
 
-    for (let j = 0; j < N.length; j++) {
-      for (let k = 0; k < post.length && expansions.length < max; k++) {
-        const expansion = pre + N[j] + post[k]
-        if (!isTop || isSequence || expansion) {
-          expansions.push(expansion)
-        }
-      }
-    }
-
-    return expansions
+    acc = combine(acc, pre, values, max, maxLength, dropEmpties && !m.post.length)
+    if (!m.post.length) break
+    str = m.post
   }
+
+  return acc
 }

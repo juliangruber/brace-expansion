@@ -201,3 +201,79 @@ t.test('single sequence max', async t => {
     `Expected time (${timeTaken}ms) to be less than 500ms`,
   )
 })
+
+// CVE-2026-14257: `max` caps the number of results but not their length, so
+// chaining many brace groups keeps the count under `max` while each result
+// grows with the number of groups. Building 100k long results (and the
+// intermediate arrays combined along the way) exhausted memory and crashed
+// the process with an uncatchable out-of-memory error.
+t.test('total expansion length is bounded', async t => {
+  const str = '{a,b}'.repeat(1500)
+  const startTime = performance.now()
+  const expanded = expand(str)
+  const endTime = performance.now()
+
+  const totalLength = expanded.reduce((sum, s) => sum + s.length, 0)
+  t.ok(
+    totalLength <= 4_000_000,
+    `Expected total length (${totalLength}) to be bounded`,
+  )
+  t.ok(expanded.length > 0, 'still returns a (truncated) result')
+  t.ok(
+    expanded.every(s => /^[ab]+$/.test(s)),
+    'results are valid expansions',
+  )
+  t.ok(
+    endTime - startTime < 5000,
+    `Expected time (${endTime - startTime}ms) to be less than 5000ms`,
+  )
+
+  // The bound is a single accumulator, not a per-level limit, so it holds no
+  // matter how many brace groups are chained - not `groups * maxLength`.
+  for (const groups of [100, 1500, 5000]) {
+    const total = expand('{a,b}'.repeat(groups)).reduce(
+      (sum, s) => sum + s.length,
+      0,
+    )
+    t.ok(
+      total <= 4_000_000,
+      `Expected total length (${total}) to stay bounded at ${groups} groups`,
+    )
+  }
+})
+
+// Expanding the tail iteratively (rather than recursing once per brace group)
+// keeps native stack depth constant, so deeply chained input that used to throw
+// `RangeError: Maximum call stack size exceeded` around ~2,700 groups now
+// returns a bounded result.
+t.test('deep chaining does not overflow the stack', async t => {
+  const str = '{a,b}'.repeat(50_000)
+  t.doesNotThrow(() => {
+    const expanded = expand(str)
+    t.ok(expanded.length > 0, 'still returns a (truncated) result')
+    t.ok(
+      expanded.reduce((sum, s) => sum + s.length, 0) <= 4_000_000,
+      'output stays bounded',
+    )
+  })
+})
+
+t.test('maxLength option bounds output size', async t => {
+  const str = '{a,b}'.repeat(1500)
+  const expanded = expand(str, { maxLength: 100_000 })
+  const totalLength = expanded.reduce((sum, s) => sum + s.length, 0)
+  t.ok(
+    totalLength <= 100_000,
+    `Expected total length (${totalLength}) to respect maxLength`,
+  )
+
+  // The `${...}` literal branch combines its body with the expanded tail and
+  // must be bounded the same way.
+  const dollar = '${x}' + '{a,b}'.repeat(20)
+  const expandedDollar = expand(dollar, { maxLength: 100_000 })
+  const dollarLength = expandedDollar.reduce((sum, s) => sum + s.length, 0)
+  t.ok(
+    dollarLength <= 100_000,
+    `Expected total length (${dollarLength}) to respect maxLength`,
+  )
+})
