@@ -2,6 +2,16 @@ var balanced = require('balanced-match');
 
 module.exports = expandTop;
 
+// `max` caps the *number* of expansions, but not their length. An input like
+// `'{a,b}'.repeat(1500)` keeps the result count low while making every result
+// ~1500 characters long; the result set, and the intermediate arrays built
+// while combining brace sets, then grow large enough to exhaust memory and
+// crash the process (CVE-2026-14257). `MAX_EXPANSION_LENGTH` bounds the total
+// number of characters an expansion may hold at any point, mirroring
+// `EXPANSION_MAX_LENGTH` from the v5.0.8 fix. The limit sits well above any
+// realistic expansion, so legitimate input is unaffected.
+var MAX_EXPANSION_LENGTH = 4000000;
+
 var escSlash = '\0SLASH'+Math.random()+'\0';
 var escOpen = '\0OPEN'+Math.random()+'\0';
 var escClose = '\0CLOSE'+Math.random()+'\0';
@@ -67,6 +77,7 @@ function expandTop(str, options) {
 
   options = options || {};
   var max = options.max == null ? Infinity : options.max;
+  var maxLength = options.maxLength == null ? MAX_EXPANSION_LENGTH : options.maxLength;
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -78,7 +89,7 @@ function expandTop(str, options) {
     str = '\\{\\}' + str.substr(2);
   }
 
-  return expand(escapeBraces(str), max, true).map(unescapeBraces);
+  return expand(escapeBraces(str), max, maxLength, true).map(unescapeBraces);
 }
 
 function embrace(str) {
@@ -95,7 +106,7 @@ function gte(i, y) {
   return i >= y;
 }
 
-function expand(str, max, isTop) {
+function expand(str, max, maxLength, isTop) {
   var expansions = [];
 
   // The `{a},b}` rewrite below restarts expansion on a rewritten string with
@@ -110,10 +121,15 @@ function expand(str, max, isTop) {
 
     if (/\$$/.test(m.pre)) {
       const post =
-        m.post.length ? expand(m.post, max, false) : ['']
+        m.post.length ? expand(m.post, max, maxLength, false) : ['']
+      // The `${...}` literal combines its body with the expanded tail, so
+      // output grows here too and is bounded like the main loop below.
+      let dollarLength = 0
       for (let k = 0; k < post.length && k < max; k++) {
         const expansion = pre + '{' + m.body + '}' + post[k]
+        if (dollarLength + expansion.length > maxLength) return expansions
         expansions.push(expansion)
+        dollarLength += expansion.length
       }
       return expansions
     }
@@ -137,7 +153,7 @@ function expand(str, max, isTop) {
     // non-expanding `{}`, which is what made inputs like `a{},{},{}...` blow up
     // exponentially.
     const post =
-      m.post.length ? expand(m.post, max, false) : ['']
+      m.post.length ? expand(m.post, max, maxLength, false) : ['']
     var n;
     if (isSequence) {
       n = m.body.split(/\.\./);
@@ -145,11 +161,19 @@ function expand(str, max, isTop) {
       n = parseCommaParts(m.body);
       if (n.length === 1) {
         // x{{a,b}}y ==> x{a}y x{b}y
-        n = expand(n[0], max, false).map(embrace);
+        n = expand(n[0], max, maxLength, false).map(embrace);
         if (n.length === 1) {
-          return post.map(function(p) {
-            return m.pre + n[0] + p;
-          });
+          // Combining the single body with the expanded tail grows output
+          // too, so it is bounded like the main combination loop below.
+          var out = [];
+          var outLength = 0;
+          for (var pi = 0; pi < post.length; pi++) {
+            var combined = m.pre + n[0] + post[pi];
+            if (outLength + combined.length > maxLength) return out;
+            out.push(combined);
+            outLength += combined.length;
+          }
+          return out;
         }
       }
     }
@@ -200,15 +224,22 @@ function expand(str, max, isTop) {
       N = [];
 
       for (var j = 0; j < n.length; j++) {
-        N.push.apply(N, expand(n[j], max, false));
+        N.push.apply(N, expand(n[j], max, maxLength, false));
       }
     }
 
+    // Bounding total characters (not just the result count) is what keeps
+    // memory flat no matter how many brace groups are chained
+    // (CVE-2026-14257) — this loop is the one place output grows.
+    var length = 0;
     for (var j = 0; j < N.length; j++) {
       for (var k = 0; k < post.length && expansions.length < max; k++) {
         var expansion = pre + N[j] + post[k];
-        if (!isTop || isSequence || expansion)
+        if (!isTop || isSequence || expansion) {
+          if (length + expansion.length > maxLength) return expansions;
           expansions.push(expansion);
+          length += expansion.length;
+        }
       }
     }
 
