@@ -3,6 +3,16 @@ var balanced = require('balanced-match');
 
 module.exports = expandTop;
 
+// `max` caps the *number* of expansions, but not their length. An input like
+// `'{a,b}'.repeat(1500)` keeps the result count low while making every result
+// ~1500 characters long; the result set, and the intermediate arrays built
+// while combining brace sets, then grow large enough to exhaust memory and
+// crash the process (CVE-2026-14257). `MAX_EXPANSION_LENGTH` bounds the total
+// number of characters an expansion may hold at any point, mirroring
+// `EXPANSION_MAX_LENGTH` from the v5.0.8 fix. The limit sits well above any
+// realistic expansion, so legitimate input is unaffected.
+var MAX_EXPANSION_LENGTH = 4000000;
+
 var escSlash = '\0SLASH'+Math.random()+'\0';
 var escOpen = '\0OPEN'+Math.random()+'\0';
 var escClose = '\0CLOSE'+Math.random()+'\0';
@@ -68,6 +78,7 @@ function expandTop(str, options) {
 
   options = options || {};
   var max = options.max == null ? Infinity : options.max;
+  var maxLength = options.maxLength == null ? MAX_EXPANSION_LENGTH : options.maxLength;
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -79,7 +90,7 @@ function expandTop(str, options) {
     str = '\\{\\}' + str.substr(2);
   }
 
-  return expand(escapeBraces(str), max, true).map(unescapeBraces);
+  return expand(escapeBraces(str), max, maxLength, true).map(unescapeBraces);
 }
 
 function identity(e) {
@@ -100,7 +111,7 @@ function gte(i, y) {
   return i >= y;
 }
 
-function expand(str, max, isTop) {
+function expand(str, max, maxLength, isTop) {
   var expansions = [];
 
   // The `{a},b}` rewrite below restarts expansion on a rewritten string with
@@ -131,14 +142,22 @@ function expand(str, max, isTop) {
       n = parseCommaParts(m.body);
       if (n.length === 1) {
         // x{{a,b}}y ==> x{a}y x{b}y
-        n = expand(n[0], max, false).map(embrace);
+        n = expand(n[0], max, maxLength, false).map(embrace);
         if (n.length === 1) {
           var post = m.post.length
-            ? expand(m.post, max, false)
+            ? expand(m.post, max, maxLength, false)
             : [''];
-          return post.map(function(p) {
-            return m.pre + n[0] + p;
-          });
+          // Combining the single body with the expanded tail grows output
+          // too, so it is bounded like the main combination loop below.
+          var out = [];
+          var outLength = 0;
+          for (var pi = 0; pi < post.length; pi++) {
+            var combined = m.pre + n[0] + post[pi];
+            if (outLength + combined.length > maxLength) return out;
+            out.push(combined);
+            outLength += combined.length;
+          }
+          return out;
         }
       }
     }
@@ -149,7 +168,7 @@ function expand(str, max, isTop) {
     // no need to expand pre, since it is guaranteed to be free of brace-sets
     var pre = m.pre;
     var post = m.post.length
-      ? expand(m.post, max, false)
+      ? expand(m.post, max, maxLength, false)
       : [''];
 
     var N;
@@ -193,14 +212,21 @@ function expand(str, max, isTop) {
         N.push(c);
       }
     } else {
-      N = concatMap(n, function(el) { return expand(el, max, false) });
+      N = concatMap(n, function(el) { return expand(el, max, maxLength, false) });
     }
 
+    // Bounding total characters (not just the result count) is what keeps
+    // memory flat no matter how many brace groups are chained
+    // (CVE-2026-14257) — this loop is the one place output grows.
+    var length = 0;
     for (var j = 0; j < N.length; j++) {
       for (var k = 0; k < post.length && expansions.length < max; k++) {
         var expansion = pre + N[j] + post[k];
-        if (!isTop || isSequence || expansion)
+        if (!isTop || isSequence || expansion) {
+          if (length + expansion.length > maxLength) return expansions;
           expansions.push(expansion);
+          length += expansion.length;
+        }
       }
     }
 
