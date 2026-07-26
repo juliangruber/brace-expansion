@@ -8,6 +8,8 @@ var escOpen = '\0OPEN'+Math.random()+'\0';
 var escClose = '\0CLOSE'+Math.random()+'\0';
 var escComma = '\0COMMA'+Math.random()+'\0';
 var escPeriod = '\0PERIOD'+Math.random()+'\0';
+var EXPANSION_MAX_LENGTH = 4000000;
+var EXPANSION_RESULT_OVERHEAD = 24;
 
 function numeric(str) {
   return parseInt(str, 10) == str
@@ -68,6 +70,10 @@ function expandTop(str, options) {
 
   options = options || {};
   var max = options.max == null ? Infinity : options.max;
+  var maxLength = options.maxLength == null
+    ? EXPANSION_MAX_LENGTH
+    : Number(options.maxLength);
+  if (maxLength !== maxLength) maxLength = EXPANSION_MAX_LENGTH;
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -79,7 +85,7 @@ function expandTop(str, options) {
     str = '\\{\\}' + str.substr(2);
   }
 
-  return expand(escapeBraces(str), max, true).map(unescapeBraces);
+  return expand(escapeBraces(str), max, maxLength, true).map(unescapeBraces);
 }
 
 function identity(e) {
@@ -100,15 +106,181 @@ function gte(i, y) {
   return i >= y;
 }
 
-function expand(str, max, isTop) {
-  var expansions = [];
+// `maxLength` primarily bounds characters, but every retained result also
+// consumes an array slot and string metadata. Reserve a conservative minimum
+// cost per result so duplicate empty strings cannot bypass the memory bound.
+function resultLimit(maxLength) {
+  if (maxLength === Infinity) return Infinity;
+  if (maxLength <= 0) return 0;
+  return Math.max(1, Math.floor(maxLength / EXPANSION_RESULT_OVERHEAD));
+}
 
-  // The `{a},b}` rewrite below restarts expansion on a rewritten string with
-  // the same `max` and `isTop = true`. Loop instead of recursing so a long run
-  // of non-expanding `{}` groups can't exhaust the call stack.
+function appendValue(
+  out,
+  retained,
+  value,
+  pre,
+  post,
+  max,
+  maxLength,
+  dropEmpties
+) {
+  var countLimit = resultLimit(maxLength);
+  if (!(out.length < max) || out.length >= countLimit) return false;
+
+  for (var k = 0; k < post.length; k++) {
+    if (!(out.length < max) || out.length >= countLimit) return false;
+    var expansion = pre + value + post[k];
+    if (dropEmpties && !expansion) continue;
+    if (retained.length + expansion.length > maxLength) return false;
+    out.push(expansion);
+    retained.length += expansion.length;
+  }
+  return true;
+}
+
+function combineValues(values, pre, post, max, maxLength, dropEmpties) {
+  var out = [];
+  var retained = { length: 0 };
+  for (var j = 0; j < values.length; j++) {
+    if (!appendValue(
+      out,
+      retained,
+      values[j],
+      pre,
+      post,
+      max,
+      maxLength,
+      dropEmpties
+    )) break;
+  }
+  return out;
+}
+
+function combineSingle(pre, post, maxLength) {
+  return combineValues([''], pre, post, Infinity, maxLength, false);
+}
+
+function combineSequence(
+  body,
+  isAlphaSequence,
+  pre,
+  post,
+  max,
+  maxLength,
+  dropEmpties
+) {
+  if (!post.length) return [];
+
+  var n = body.split(/\.\./);
+  var out = [];
+  var retained = { length: 0 };
+  var x = numeric(n[0]);
+  var y = numeric(n[1]);
+  var width = Math.max(n[0].length, n[1].length)
+  var incr = n.length == 3
+    ? Math.max(Math.abs(numeric(n[2])), 1)
+    : 1;
+  var test = lte;
+  var reverse = y < x;
+  if (reverse) {
+    incr *= -1;
+    test = gte;
+  }
+  var pad = n.some(isPadded);
+
+  for (var i = x; test(i, y); i += incr) {
+    var c;
+    if (isAlphaSequence) {
+      c = String.fromCharCode(i);
+      if (c === '\\')
+        c = '';
+    } else {
+      c = String(i);
+      if (pad) {
+        var need = width - c.length;
+        if (need > 0) {
+          var z = new Array(need + 1).join('0');
+          if (i < 0)
+            c = '-' + z + c.slice(1);
+          else
+            c = z + c;
+        }
+      }
+    }
+    if (!appendValue(
+      out,
+      retained,
+      c,
+      pre,
+      post,
+      max,
+      maxLength,
+      dropEmpties
+    )) break;
+  }
+  return out;
+}
+
+function combineOptions(
+  body,
+  pre,
+  post,
+  max,
+  maxLength,
+  dropEmpties
+) {
+  if (!post.length) return [];
+
+  var n = parseCommaParts(body);
+  if (n.length === 1) {
+    // x{{a,b}}y ==> x{a}y x{b}y
+    n = expand(n[0], max, maxLength, false).map(embrace);
+    if (n.length === 1) {
+      return combineSingle(pre + n[0], post, maxLength);
+    }
+  }
+
+  var out = [];
+  var retained = { length: 0 };
+  for (var j = 0; j < n.length; j++) {
+    var additions = expand(n[j], max, maxLength, false);
+    for (var a = 0; a < additions.length; a++) {
+      if (!appendValue(
+        out,
+        retained,
+        additions[a],
+        pre,
+        post,
+        max,
+        maxLength,
+        dropEmpties
+      )) return out;
+    }
+  }
+  return out;
+}
+
+function expand(str, max, maxLength, isTop) {
+  var frames = [];
+  var result;
+
+  // Parse the recursive tail into explicit frames, then fold it right to left.
   for (;;) {
     var m = balanced('{', '}', str);
-    if (!m || /\$$/.test(m.pre)) return [str];
+    if (!m) {
+      result = [str];
+      break;
+    }
+
+    var pre = m.pre;
+
+    // Preserve the v1 behavior: once a `${...}` group is encountered, the
+    // entire remaining tail is literal.
+    if (/\$$/.test(pre)) {
+      result = [str];
+      break;
+    }
 
     var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
     var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
@@ -118,92 +290,51 @@ function expand(str, max, isTop) {
       // {a},b}
       if (m.post.match(/,(?!,).*\}/)) {
         str = m.pre + '{' + m.body + escClose + m.post;
-        isTop = true
-        continue
+        isTop = true;
+        continue;
       }
-      return [str];
+      result = [str];
+      break;
     }
 
-    var n;
-    if (isSequence) {
-      n = m.body.split(/\.\./);
-    } else {
-      n = parseCommaParts(m.body);
-      if (n.length === 1) {
-        // x{{a,b}}y ==> x{a}y x{b}y
-        n = expand(n[0], max, false).map(embrace);
-        if (n.length === 1) {
-          var post = m.post.length
-            ? expand(m.post, max, false)
-            : [''];
-          return post.map(function(p) {
-            return m.pre + n[0] + p;
-          });
-        }
-      }
+    frames.push({
+      type: 'regular',
+      pre: pre,
+      body: m.body,
+      isAlphaSequence: isAlphaSequence,
+      isSequence: isSequence,
+      dropEmpties: isTop && !isSequence
+    });
+    if (m.post.length) {
+      str = m.post;
+      isTop = false;
+      continue;
     }
-
-    // at this point, n is the parts, and we know it's not a comma set
-    // with a single entry.
-
-    // no need to expand pre, since it is guaranteed to be free of brace-sets
-    var pre = m.pre;
-    var post = m.post.length
-      ? expand(m.post, max, false)
-      : [''];
-
-    var N;
-
-    if (isSequence) {
-      var x = numeric(n[0]);
-      var y = numeric(n[1]);
-      var width = Math.max(n[0].length, n[1].length)
-      var incr = n.length == 3
-        ? Math.max(Math.abs(numeric(n[2])), 1)
-        : 1;
-      var test = lte;
-      var reverse = y < x;
-      if (reverse) {
-        incr *= -1;
-        test = gte;
-      }
-      var pad = n.some(isPadded);
-
-      N = [];
-
-      for (var i = x; test(i, y) && N.length < max; i += incr) {
-        var c;
-        if (isAlphaSequence) {
-          c = String.fromCharCode(i);
-          if (c === '\\')
-            c = '';
-        } else {
-          c = String(i);
-          if (pad) {
-            var need = width - c.length;
-            if (need > 0) {
-              var z = new Array(need + 1).join('0');
-              if (i < 0)
-                c = '-' + z + c.slice(1);
-              else
-                c = z + c;
-            }
-          }
-        }
-        N.push(c);
-      }
-    } else {
-      N = concatMap(n, function(el) { return expand(el, max, false) });
-    }
-
-    for (var j = 0; j < N.length; j++) {
-      for (var k = 0; k < post.length && expansions.length < max; k++) {
-        var expansion = pre + N[j] + post[k];
-        if (!isTop || isSequence || expansion)
-          expansions.push(expansion);
-      }
-    }
-
-    return expansions;
+    result = [''];
+    break;
   }
+
+  while (frames.length) {
+    var frame = frames.pop();
+    result = frame.isSequence
+      ? combineSequence(
+          frame.body,
+          frame.isAlphaSequence,
+          frame.pre,
+          result,
+          max,
+          maxLength,
+          frame.dropEmpties
+        )
+      : combineOptions(
+          frame.body,
+          frame.pre,
+          result,
+          max,
+          maxLength,
+          frame.dropEmpties
+        );
+  }
+
+  return result;
 }
