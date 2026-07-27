@@ -6,6 +6,24 @@ const escClose = '\0CLOSE' + Math.random() + '\0'
 const escComma = '\0COMMA' + Math.random() + '\0'
 const escPeriod = '\0PERIOD' + Math.random() + '\0'
 
+// The modern release lines cap this at 100_000, but the 3.x line never
+// capped the number of expansions, so it defaults to Infinity to preserve
+// published behavior. Pass the `max` option to opt in to a cap.
+export const EXPANSION_MAX = Infinity
+
+// `EXPANSION_MAX` caps the *number* of expansions, but not their length. An
+// input like `'{a,b}'.repeat(1500)` stays under any such cap - and expands
+// freely under this line's Infinity default - while making every result
+// ~1500 characters long. The result set, and the intermediate arrays built
+// while combining brace sets, then grow large enough to exhaust memory and
+// crash the process (CVE-2026-14257). `EXPANSION_MAX_LENGTH` bounds the
+// total number of characters the accumulator may hold at any point, so
+// memory stays flat no matter how many brace groups are chained. The limit
+// sits well above any realistic expansion (100k results hitting the modern
+// lines' `EXPANSION_MAX` measure ~1M characters) so legitimate input is
+// unaffected.
+export const EXPANSION_MAX_LENGTH = 4_000_000
+
 /**
  * @return {number}
  */
@@ -70,12 +88,10 @@ function parseCommaParts (str) {
  * @param {string} str
  * @param {{max?: number, maxLength?: number}} [options]
  */
-export default function expandTop (str, options) {
+export default function expandTop (str, options = {}) {
   if (!str) { return [] }
 
-  options = options || {}
-  const max = options.max == null ? Infinity : options.max
-  const maxLength = options.maxLength == null ? 4_000_000 : options.maxLength
+  const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH } = options
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -172,7 +188,7 @@ function expandSequence (body, isAlphaSequence, max) {
   const x = numeric(n[0])
   const y = numeric(n[1])
   const width = Math.max(n[0].length, n[1].length)
-  let incr = n.length === 3
+  let incr = n.length === 3 && n[2] !== undefined
     ? Math.max(Math.abs(numeric(n[2])), 1)
     : 1
   let test = lte
@@ -251,7 +267,7 @@ function expand (str, max, maxLength, isTop) {
     if (!isSequence && !isOptions) {
       // {a},b}
       if (m.post.match(/,(?!,).*\}/)) {
-        str = pre + '{' + m.body + escClose + m.post
+        str = m.pre + '{' + m.body + escClose + m.post
         isTop = true
         continue
       }
@@ -269,15 +285,18 @@ function expand (str, max, maxLength, isTop) {
       values = expandSequence(m.body, isAlphaSequence, max)
     } else {
       let n = parseCommaParts(m.body)
-      if (n.length === 1) {
+      if (n.length === 1 && n[0] !== undefined) {
         // x{{a,b}}y ==> x{a}y x{b}y
         n = expand(n[0], max, maxLength, false).map(embrace)
+        // XXX is this necessary? Can't seem to hit it in tests.
+        /* c8 ignore start */
         if (n.length === 1) {
           acc = combine(acc, pre + n[0], [''], max, maxLength, dropEmpties && !m.post.length)
           if (!m.post.length) break
           str = m.post
           continue
         }
+        /* c8 ignore stop */
       }
       values = []
       for (let j = 0; j < n.length; j++) {
