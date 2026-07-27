@@ -64,6 +64,10 @@ const expansions = expand('{1..100}'.repeat(5), {
 // expansions.length will be 100, not 100^5
 ```
 
+`max` defaults to `Infinity` on the 3.x line for compatibility, which
+means a single very large sequence such as `{1..100000000}` can still
+exhaust memory. Pass `{ max: 100000 }` to match the 4.x/5.x default.
+
 The `options` object can also provide a `maxLength` value to cap the
 total number of characters across all expansions. This is limited to
 `4_000_000` by default, to prevent memory exhaustion from inputs whose

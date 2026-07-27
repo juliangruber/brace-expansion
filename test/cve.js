@@ -2,7 +2,7 @@
 
 import test from 'node:test'
 import assert from 'assert'
-import expand from '../index.js'
+import expand, { EXPANSION_MAX_LENGTH } from '../index.js'
 
 // CVE-2026-14257: `max` caps the number of results but not their length, so
 // chaining many brace groups keeps the count under `max` while each result
@@ -17,7 +17,7 @@ test('total expansion length is bounded', function () {
 
   const totalLength = expanded.reduce((sum, s) => sum + s.length, 0)
   assert.ok(
-    totalLength <= 4_000_000,
+    totalLength <= EXPANSION_MAX_LENGTH,
     `Expected total length (${totalLength}) to be bounded`
   )
   assert.ok(expanded.length > 0, 'still returns a (truncated) result')
@@ -38,7 +38,7 @@ test('total expansion length is bounded', function () {
       0
     )
     assert.ok(
-      total <= 4_000_000,
+      total <= EXPANSION_MAX_LENGTH,
       `Expected total length (${total}) to stay bounded at ${groups} groups`
     )
   }
@@ -54,7 +54,7 @@ test('deep chaining does not overflow the stack', function () {
     const expanded = expand(str)
     assert.ok(expanded.length > 0, 'still returns a (truncated) result')
     assert.ok(
-      expanded.reduce((sum, s) => sum + s.length, 0) <= 4_000_000,
+      expanded.reduce((sum, s) => sum + s.length, 0) <= EXPANSION_MAX_LENGTH,
       'output stays bounded'
     )
   })
@@ -82,4 +82,14 @@ test('maxLength option bounds output size', function () {
 
 test('max option caps the number of results', function () {
   assert.deepStrictEqual(expand('{a,b,c,d,e}', { max: 2 }), ['a', 'b'])
+})
+
+// The iterative algorithm keeps `isTop` across the `{a},b}` rewrite, where
+// published 3.0.2's `return expand(str)` dropped it - so empty comma-parts
+// are now dropped after the rewrite. Bash agrees (`{a},}` expands to `a}`
+// alone), and upstream 5.0.8 behaves identically. This is the only observable
+// behavior change from 3.0.2; pin it so it stays deliberate.
+test('empty results are dropped after the {a},b} rewrite', function () {
+  assert.deepStrictEqual(expand('{a},}'), ['a}'])
+  assert.deepStrictEqual(expand('{a},,b}'), ['a}', 'b'])
 })
