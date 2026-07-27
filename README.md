@@ -56,6 +56,17 @@ var expand = require('brace-expansion');
 Return an array of all possible and valid expansions of `str`. If none are
 found, `[str]` is returned.
 
+The `options` object can provide a `max` value to cap the number
+of expansions allowed. This is limited to `100_000` by default,
+to prevent DoS attacks.
+
+```js
+const expansions = expand('{1..100}'.repeat(5), {
+  max: 100,
+})
+// expansions.length will be 100, not 100^5
+```
+
 Valid expansions are:
 
 ```js
