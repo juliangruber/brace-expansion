@@ -71,9 +71,10 @@ result count stays under `max` while each result grows very long.
 
 ```js
 const expansions = expand('{a,b}'.repeat(1500), {
-  maxLength: 100,
+  maxLength: 10_000,
 })
-// the combined length of expansions will not exceed 100 characters
+// every result is 1500 characters long, so expansions will hold the
+// first 6 of them - a 7th would push the combined length past 10_000
 ```
 
 Valid expansions are:
