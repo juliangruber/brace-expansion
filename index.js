@@ -6,10 +6,7 @@ const escClose = '\0CLOSE' + Math.random() + '\0'
 const escComma = '\0COMMA' + Math.random() + '\0'
 const escPeriod = '\0PERIOD' + Math.random() + '\0'
 
-// The modern release lines cap this at 100_000, but the 3.x line never
-// capped the number of expansions, so it defaults to Infinity to preserve
-// published behavior. Pass the `max` option to opt in to a cap.
-export const EXPANSION_MAX = Infinity
+export const EXPANSION_MAX = 100_000
 
 // `EXPANSION_MAX` caps the *number* of expansions, but not their length. An
 // input like `'{a,b}'.repeat(1500)` stays under any such cap - and expands
