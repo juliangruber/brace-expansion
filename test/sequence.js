@@ -66,8 +66,9 @@ test('multiple sequences max', function(t) {
   ], 'custom max truncates expansion');
   t.equal(expanded10.length, 10, 'custom max is respected');
 
+  // 11^5 == 161051 combinations, truncated to the default `max`.
   var large = '{1..11}'.repeat(5);
-  t.equal(expand(large).length, 161051, 'default is unbounded');
+  t.equal(expand(large).length, 100000, 'default max caps expansion');
   t.end();
 });
 
@@ -80,6 +81,8 @@ test('single sequence max', function(t) {
   t.equal(expanded.length, 10, 'custom max is respected');
 
   var large = '{1..10000}';
-  t.equal(expand(large).length, 10000, 'default is unbounded');
+  t.equal(expand(large).length, 10000, 'expansions under the default max are untouched');
+
+  t.equal(expand('{1..1000000}').length, 100000, 'default max caps expansion');
   t.end();
 });
