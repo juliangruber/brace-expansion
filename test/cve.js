@@ -71,14 +71,14 @@ test('maxLength option bounds output size', function (t) {
     `Expected total length (${totalLength}) to respect maxLength`,
   )
 
-  // The `${...}` literal branch combines its body with the expanded tail and
+  // The `${...}` branch returns the whole remainder as a single literal, which
   // must be bounded the same way.
   var dollar = '${x}' + '{a,b}'.repeat(20)
-  var expandedDollar = expand(dollar, { maxLength: 100_000 })
-  var dollarLength = expandedDollar.reduce(function (sum, s) { return sum + s.length; }, 0)
-  t.ok(
-    dollarLength <= 100_000,
-    `Expected total length (${dollarLength}) to respect maxLength`,
+  t.deepEqual(expand(dollar), [dollar], 'literal fits under the default maxLength')
+  t.deepEqual(
+    expand(dollar, { maxLength: 10 }),
+    [],
+    'literal longer than maxLength is dropped',
   )
 
   t.end();

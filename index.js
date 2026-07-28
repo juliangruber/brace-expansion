@@ -120,13 +120,19 @@ function gte(i, y) {
 // This is the one place output grows, so bounding it here keeps the single
 // accumulator - and therefore memory - flat regardless of how many brace groups
 // are combined (CVE-2026-14257).
+//
+// `base[a]` is the length of the part of `acc[a]` that predates the current
+// empty-drop baseline (see `expand`). The matching baselines for the results
+// are appended to `outBase`, which the caller carries forward alongside them.
 function combine(
   acc,
+  base,
   pre,
   values,
   max,
   maxLength,
-  dropEmpties
+  dropEmpties,
+  outBase
 ) {
   var out = []
   var length = 0
@@ -135,10 +141,12 @@ function combine(
       if (out.length >= max) return out
       var expansion = acc[a] + pre + values[v]
       // Bash drops empty results at the top level. Skip them before they count
-      // against `max`, so `max` bounds the number of *kept* results.
-      if (dropEmpties && !expansion) continue
+      // against `max`, so `max` bounds the number of *kept* results. "Empty"
+      // means "adds nothing past the baseline", not "empty overall".
+      if (dropEmpties && expansion.length === base[a]) continue
       if (length + expansion.length > maxLength) return out
       out.push(expansion)
+      outBase.push(base[a])
       length += expansion.length
     }
   }
@@ -216,37 +224,41 @@ function expand(
   // `maxLength` bounds directly (CVE-2026-14257).
   var acc = ['']
 
-  // Bash drops empty results, but only when the *first* top-level group is a
+  // Bash drops empty results, but only when the *first* group of the run is a
   // comma set - a sequence like `{a..\}` may legitimately yield ''. The drop
   // is on the final strings, so it is applied to whichever `combine` produces
   // them (the one with no brace set left in the tail).
+  //
+  // The old implementation recursed on `m.post`, so the drop tested only the
+  // expansion of the current call's substring. The `{a},b}` rewrite below turns
+  // `isTop` back on part-way through a string, starting a fresh such run, so
+  // the drop must ignore whatever `acc` already holds from earlier groups.
+  // `accBase[a]` records how much of `acc[a]` predates the current run;
+  // `combine` treats an expansion as empty when it adds nothing past that.
+  var accBase = [0]
   var dropEmpties = false
   var firstGroup = true
+  var nextBase
 
   for (;;) {
     var m = balanced('{', '}', str);
 
     // No brace set left: the rest of the string is literal.
     if (!m) {
-      return combine(acc, str, [''], max, maxLength, dropEmpties)
+      return combine(acc, accBase, str, [''], max, maxLength, dropEmpties, [])
     }
 
     // no need to expand pre, since it is guaranteed to be free of brace-sets
     var pre = m.pre;
 
+    // For compatibility reasons, `${` is not eligible for brace expansion, and
+    // on the 1.x line it suppresses expansion of the rest of the string too:
+    // the whole remainder is literal. The 2.x and 5.x lines instead keep
+    // expanding the tail, which is what bash does, but changing that here would
+    // be a breaking change for 1.x consumers. Routed through `combine` so the
+    // result is still bounded by `max` and `maxLength`.
     if (/\$$/.test(pre)) {
-      acc = combine(
-        acc,
-        pre + '{' + m.body + '}',
-        [''],
-        max,
-        maxLength,
-        dropEmpties && !m.post.length
-      )
-      firstGroup = false
-      if (!m.post.length) break
-      str = m.post
-      continue
+      return combine(acc, accBase, str, [''], max, maxLength, dropEmpties, [])
     }
 
     var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
@@ -257,17 +269,28 @@ function expand(
       // {a},b}
       if (m.post.match(/,(?!,).*\}/)) {
         str = m.pre + '{' + m.body + escClose + m.post;
+        // The rewritten string is expanded as if it were a fresh top-level one,
+        // so start a new empty-drop run: anchor the baseline at what `acc`
+        // holds now, and let the next expanding group decide whether to drop.
         isTop = true
+        firstGroup = true
+        dropEmpties = false
+        accBase = []
+        for (var b = 0; b < acc.length; b++) {
+          accBase.push(acc[b].length)
+        }
         continue
       }
       // Nothing here expands, so the whole remaining string is literal.
       return combine(
         acc,
+        accBase,
         pre + '{' + m.body + '}' + m.post,
         [''],
         max,
         maxLength,
-        dropEmpties
+        dropEmpties,
+        []
       )
     }
 
@@ -287,14 +310,18 @@ function expand(
         //XXX is this necessary? Can't seem to hit it in tests.
         /* c8 ignore start */
         if (n.length === 1) {
+          nextBase = []
           acc = combine(
             acc,
+            accBase,
             pre + n[0],
             [''],
             max,
             maxLength,
-            dropEmpties && !m.post.length
+            dropEmpties && !m.post.length,
+            nextBase
           )
+          accBase = nextBase
           if (!m.post.length) break
           str = m.post
           continue
@@ -308,7 +335,18 @@ function expand(
       }
     }
 
-    acc = combine(acc, pre, values, max, maxLength, dropEmpties && !m.post.length)
+    nextBase = []
+    acc = combine(
+      acc,
+      accBase,
+      pre,
+      values,
+      max,
+      maxLength,
+      dropEmpties && !m.post.length,
+      nextBase
+    )
+    accBase = nextBase
     if (!m.post.length) break
     str = m.post
   }

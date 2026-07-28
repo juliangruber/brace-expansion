@@ -51,7 +51,7 @@ expand('ppp{,config,oe{,conf}}')
 var expand = require('brace-expansion');
 ```
 
-### var expanded = expand(str)
+### var expanded = expand(str, [options])
 
 Return an array of all possible and valid expansions of `str`. If none are
 found, `[str]` is returned.
@@ -74,9 +74,8 @@ result count stays under `max` while each result grows very long.
 
 ```js
 const expansions = expand('{a,b}'.repeat(1500), {
-  maxLength: 100,
+  maxLength: 10_000,
 })
-// the combined length of expansions will not exceed 100 characters
 ```
 
 Valid expansions are:
