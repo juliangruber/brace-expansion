@@ -145,7 +145,8 @@ function combine(
 function expandSequence(
   body,
   isAlphaSequence,
-  max
+  max,
+  maxLength
 ) {
   var n = body.split(/\.\./)
   var N = []
@@ -171,6 +172,7 @@ function expandSequence(
   }
   var pad = n.some(isPadded)
 
+  var length = 0
   for (var i = x; test(i, y) && N.length < max; i += incr) {
     var c
     if (isAlphaSequence) {
@@ -192,7 +194,9 @@ function expandSequence(
         }
       }
     }
+    if (length + c.length > maxLength) break
     N.push(c)
+    length += c.length
   }
   return N
 }
@@ -273,7 +277,7 @@ function expand(
 
     var values;
     if (isSequence) {
-      values = expandSequence(m.body, isAlphaSequence, max);
+      values = expandSequence(m.body, isAlphaSequence, max, maxLength);
     } else {
       var n = parseCommaParts(m.body);
       if (n.length === 1 && n[0] !== undefined) {
@@ -297,9 +301,31 @@ function expand(
         /* c8 ignore stop */
       }
 
+      // Values that `combine` is going to drop as empty produce no result, so
+      // they must not count against `max` - otherwise `{a,,b}` with `max: 2`
+      // would stop at `['a', '']` and yield one result instead of two. Skipping
+      // them outright keeps `values` bounded while leaving `max` a bound on
+      // *kept* results.
+      var dropsEmpties = dropEmpties && !m.post.length && !pre
+      for (var d = 0; dropsEmpties && d < acc.length; d++) {
+        if (acc[d]) {
+          dropsEmpties = false
+        }
+      }
+
       values = []
-      for (var j = 0; j < n.length; j++) {
-        values.push.apply(values, expand(n[j], max, maxLength, false))
+      var valuesLength = 0
+      outer: for (var j = 0; j < n.length; j++) {
+        var expanded = expand(n[j], max, maxLength, false)
+        for (var k = 0; k < expanded.length; k++) {
+          var v = expanded[k]
+          if (dropsEmpties && !v) continue
+          if (values.length >= max || valuesLength + v.length > maxLength) {
+            break outer
+          }
+          values.push(v)
+          valuesLength += v.length
+        }
       }
     }
 
