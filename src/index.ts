@@ -161,6 +161,7 @@ function expandSequence(
   body: string,
   isAlphaSequence: boolean,
   max: number,
+  maxLength: number,
 ): string[] {
   const n = body.split(/\.\./)
   const N: string[] = []
@@ -186,6 +187,7 @@ function expandSequence(
   }
   const pad = n.some(isPadded)
 
+  let length = 0
   for (let i = x; test(i, y) && N.length < max; i += incr) {
     let c
     if (isAlphaSequence) {
@@ -207,7 +209,9 @@ function expandSequence(
         }
       }
     }
+    if (length + c.length > maxLength) break
     N.push(c)
+    length += c.length
   }
   return N
 }
@@ -290,7 +294,7 @@ function expand_(
 
     let values: string[]
     if (isSequence) {
-      values = expandSequence(m.body, isAlphaSequence, max)
+      values = expandSequence(m.body, isAlphaSequence, max, maxLength)
     } else {
       let n = parseCommaParts(m.body)
       if (n.length === 1 && n[0] !== undefined) {
@@ -314,9 +318,31 @@ function expand_(
         /* c8 ignore stop */
       }
 
+      // Values that `combine` is going to drop as empty produce no result, so
+      // they must not count against `max` - otherwise `{a,,b}` with `max: 2`
+      // would stop at `['a', '']` and yield one result instead of two. Skipping
+      // them outright keeps `values` bounded while leaving `max` a bound on
+      // *kept* results.
+      let dropsEmpties = dropEmpties && !m.post.length && !pre
+      for (let d = 0; dropsEmpties && d < acc.length; d++) {
+        if (acc[d]) {
+          dropsEmpties = false
+        }
+      }
+
       values = []
-      for (let j = 0; j < n.length; j++) {
-        values.push.apply(values, expand_(n[j] as string, max, maxLength, false))
+      let valuesLength = 0
+      outer: for (let j = 0; j < n.length; j++) {
+        const expanded = expand_(n[j] as string, max, maxLength, false)
+        for (let k = 0; k < expanded.length; k++) {
+          const v = expanded[k] as string
+          if (dropsEmpties && !v) continue
+          if (values.length >= max || valuesLength + v.length > maxLength) {
+            break outer
+          }
+          values.push(v)
+          valuesLength += v.length
+        }
       }
     }
 
