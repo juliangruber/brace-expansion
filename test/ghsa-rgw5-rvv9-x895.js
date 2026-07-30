@@ -18,12 +18,12 @@ test('total length across comma alternatives is bounded', async t => {
   const totalLength = expanded.reduce((sum, s) => sum + s.length, 0)
   assert.ok(
     totalLength <= 50,
-    `Expected total length (${totalLength}) to respect maxLength`,
+    `Expected total length (${totalLength}) to respect maxLength`
   )
   assert.ok(expanded.length > 0, 'still returns a (truncated) result')
   assert.ok(
     endTime - startTime < 500,
-    `Expected time (${endTime - startTime}ms) to be less than 500ms`,
+    `Expected time (${endTime - startTime}ms) to be less than 500ms`
   )
 
   // Regression case from the report: 400 alternatives, each individually
@@ -35,7 +35,7 @@ test('total length across comma alternatives is bounded', async t => {
     const bigTotal = bigExpanded.reduce((sum, s) => sum + s.length, 0)
     assert.ok(
       bigTotal <= 4_000_000,
-      `Expected total length (${bigTotal}) to stay bounded`,
+      `Expected total length (${bigTotal}) to stay bounded`
     )
   })
 })
@@ -52,19 +52,19 @@ test('padded sequences respect maxLength while generating', async t => {
   const totalLength = expanded.reduce((sum, s) => sum + s.length, 0)
   assert.ok(
     totalLength <= 4_000_000,
-    `Expected total length (${totalLength}) to stay bounded`,
+    `Expected total length (${totalLength}) to stay bounded`
   )
   assert.ok(expanded.length > 0, 'still returns a (truncated) result')
   assert.ok(
     elapsed < 2000,
-    `Expected time (${elapsed}ms) to be less than 2000ms`,
+    `Expected time (${elapsed}ms) to be less than 2000ms`
   )
 
   // Truncating early must not change results that fit within the bound.
   assert.deepStrictEqual(
     expand('{01..10}'),
     ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'],
-    'padded sequences under the bound are unaffected',
+    'padded sequences under the bound are unaffected'
   )
 })
 
@@ -75,17 +75,17 @@ test('max bounds the number of kept results', async t => {
   assert.deepStrictEqual(
     expand('{a,,b}', { max: 2 }),
     ['a', 'b'],
-    'dropped empty alternatives do not count against max',
+    'dropped empty alternatives do not count against max'
   )
   assert.deepStrictEqual(
     expand('{a,,,b,c}', { max: 3 }),
     ['a', 'b', 'c'],
-    'consecutive empty alternatives do not count against max',
+    'consecutive empty alternatives do not count against max'
   )
   // Here the empties survive as `xy`, so they are results and do count.
   assert.deepStrictEqual(
     expand('x{a,,b}y', { max: 2 }),
     ['xay', 'xy'],
-    'kept empty alternatives still count against max',
+    'kept empty alternatives still count against max'
   )
 })

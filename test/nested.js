@@ -12,7 +12,7 @@ test('nested', function () {
   ])
   assert.deepStrictEqual(
     expand('{{A..Z},{a..z}}'),
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split(''),
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('')
   )
   assert.deepStrictEqual(expand('ppp{,config,oe{,conf}}'), [
     'ppp',
