@@ -1,6 +1,5 @@
-var test = require('tape');
-var expand = require('..');
-
+var test = require('tape')
+var expand = require('..')
 
 // https://github.com/juliangruber/brace-expansion/security/advisories/GHSA-3jxr-9vmj-r5cp
 test('unbound recursion', async t => {
