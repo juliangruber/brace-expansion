@@ -54,7 +54,8 @@ test('deep chaining does not overflow the stack', function () {
     const expanded = expand(str)
     assert.ok(expanded.length > 0, 'still returns a (truncated) result')
     assert.ok(
-      expanded.reduce((sum, s) => sum + s.length, 0) <= EXPANSION_MAX_LENGTH,
+      expanded.reduce((sum, s) => sum + s.length, 0) <=
+        EXPANSION_MAX_LENGTH,
       'output stays bounded'
     )
   })
