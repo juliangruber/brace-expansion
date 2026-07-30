@@ -4,6 +4,10 @@ import expand from '../index.js'
 
 test('empty option', function () {
   assert.deepStrictEqual(expand('-v{,,,,}'), [
-    '-v', '-v', '-v', '-v', '-v'
+    '-v',
+    '-v',
+    '-v',
+    '-v',
+    '-v',
   ])
 })
