@@ -365,3 +365,28 @@ t.test('max bounds the number of kept results', async t => {
     'kept empty alternatives still count against max',
   )
 })
+
+// Empty alternatives are normally skipped before they reach `combine`, but that
+// pre-filter only applies when every accumulated prefix is still empty. Once a
+// preceding group has contributed a non-empty prefix, `combine` is the only
+// thing left to drop the empties that pairing the empty prefixes produces.
+t.test(
+  'empties are dropped when only some prefixes are empty',
+  async t => {
+    t.same(
+      expand('{a,}{,}'),
+      ['a', 'a'],
+      'trailing empty group after a mixed one',
+    )
+    t.same(
+      expand('{,a}{,}'),
+      ['a', 'a'],
+      'order of the alternatives is irrelevant',
+    )
+    t.same(
+      expand('{a,}{,}{,}'),
+      ['a', 'a', 'a', 'a'],
+      'still dropped across several trailing empty groups',
+    )
+  },
+)
