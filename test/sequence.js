@@ -58,7 +58,7 @@ test('multiple sequences max', function (t) {
       '1111111119',
       '11111111110',
     ],
-    'custom max truncates expansion',
+    'custom max truncates expansion'
   )
   t.equal(expanded10.length, 10, 'custom max is respected')
 
@@ -74,7 +74,7 @@ test('single sequence max', function (t) {
   t.deepEqual(
     expanded,
     ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
-    'custom max truncates expansion',
+    'custom max truncates expansion'
   )
   t.equal(expanded.length, 10, 'custom max is respected')
 
@@ -82,13 +82,13 @@ test('single sequence max', function (t) {
   t.equal(
     expand(large).length,
     10000,
-    'expansions under the default max are untouched',
+    'expansions under the default max are untouched'
   )
 
   t.equal(
     expand('{1..1000000}').length,
     100000,
-    'default max caps expansion',
+    'default max caps expansion'
   )
   t.end()
 })

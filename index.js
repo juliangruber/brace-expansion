@@ -101,7 +101,7 @@ function expandTop(str, options) {
   }
 
   return expand(escapeBraces(str), max, maxLength, true).map(
-    unescapeBraces,
+    unescapeBraces
   )
 }
 
@@ -232,7 +232,7 @@ function expand(str, max, maxLength, isTop) {
         [''],
         max,
         maxLength,
-        dropEmpties && !m.post.length,
+        dropEmpties && !m.post.length
       )
       firstGroup = false
       if (!m.post.length) break
@@ -242,7 +242,7 @@ function expand(str, max, maxLength, isTop) {
 
     var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body)
     var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(
-      m.body,
+      m.body
     )
     var isSequence = isNumericSequence || isAlphaSequence
     var isOptions = m.body.indexOf(',') >= 0
@@ -260,7 +260,7 @@ function expand(str, max, maxLength, isTop) {
         [''],
         max,
         maxLength,
-        dropEmpties,
+        dropEmpties
       )
     }
 
@@ -286,7 +286,7 @@ function expand(str, max, maxLength, isTop) {
             [''],
             max,
             maxLength,
-            dropEmpties && !m.post.length,
+            dropEmpties && !m.post.length
           )
           if (!m.post.length) break
           str = m.post
@@ -332,7 +332,7 @@ function expand(str, max, maxLength, isTop) {
       values,
       max,
       maxLength,
-      dropEmpties && !m.post.length,
+      dropEmpties && !m.post.length
     )
     if (!m.post.length) break
     str = m.post
