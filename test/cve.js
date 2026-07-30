@@ -18,16 +18,16 @@ test('total expansion length is bounded', function (t) {
   }, 0)
   t.ok(
     totalLength <= 4_000_000,
-    `Expected total length (${totalLength}) to be bounded`,
+    `Expected total length (${totalLength}) to be bounded`
   )
   t.ok(expanded.length > 0, 'still returns a (truncated) result')
   t.ok(
     expanded.every(s => /^[ab]+$/.test(s)),
-    'results are valid expansions',
+    'results are valid expansions'
   )
   t.ok(
     endTime - startTime < 5000,
-    `Expected time (${endTime - startTime}ms) to be less than 5000ms`,
+    `Expected time (${endTime - startTime}ms) to be less than 5000ms`
   )
 
   // The bound is a single accumulator, not a per-level limit, so it holds no
@@ -38,7 +38,7 @@ test('total expansion length is bounded', function (t) {
     }, 0)
     t.ok(
       total <= 4_000_000,
-      `Expected total length (${total}) to stay bounded at ${groups} groups`,
+      `Expected total length (${total}) to stay bounded at ${groups} groups`
     )
   }
 
@@ -58,7 +58,7 @@ test('deep chaining does not overflow the stack', function (t) {
       expanded.reduce(function (sum, s) {
         return sum + s.length
       }, 0) <= 4_000_000,
-      'output stays bounded',
+      'output stays bounded'
     )
   })
 
@@ -73,7 +73,7 @@ test('maxLength option bounds output size', function (t) {
   }, 0)
   t.ok(
     totalLength <= 100_000,
-    `Expected total length (${totalLength}) to respect maxLength`,
+    `Expected total length (${totalLength}) to respect maxLength`
   )
 
   // The `${...}` branch returns the whole remainder as a single literal, which
@@ -82,12 +82,12 @@ test('maxLength option bounds output size', function (t) {
   t.deepEqual(
     expand(dollar),
     [dollar],
-    'literal fits under the default maxLength',
+    'literal fits under the default maxLength'
   )
   t.deepEqual(
     expand(dollar, { maxLength: 10 }),
     [],
-    'literal longer than maxLength is dropped',
+    'literal longer than maxLength is dropped'
   )
 
   t.end()

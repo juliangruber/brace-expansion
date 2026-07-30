@@ -1,4 +1,5 @@
 {
+  "trailingComma": "es5",
   "experimentalTernaries": true,
   "semi": false,
   "printWidth": 75,

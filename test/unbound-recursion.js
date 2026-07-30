@@ -13,7 +13,7 @@ test('unbound recursion', function (t) {
   t.deepEqual(expanded, [str], 'does not expand')
   t.ok(
     duration < 5000,
-    `expected expansion to be less than 5000ms: ${duration}ms`,
+    `expected expansion to be less than 5000ms: ${duration}ms`
   )
   t.end()
 })
