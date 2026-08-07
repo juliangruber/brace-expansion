@@ -29,6 +29,7 @@
     "test": "tap",
     "snap": "tap",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "benchmark": "node benchmark/index.js",
     "typedoc": "typedoc --tsconfig .tshy/esm.json ./src/*.ts"
   },
