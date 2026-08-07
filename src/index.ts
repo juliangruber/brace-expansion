@@ -106,7 +106,9 @@ export function expand(str: string, options: BraceExpansionOptions = {}) {
     str = '\\{\\}' + str.slice(2)
   }
 
-  return expand_(escapeBraces(str), max, maxLength, true).map(unescapeBraces)
+  return expand_(escapeBraces(str), max, maxLength, true).map(
+    unescapeBraces,
+  )
 }
 
 function embrace(str: string) {
@@ -337,7 +339,10 @@ function expand_(
         for (let k = 0; k < expanded.length; k++) {
           const v = expanded[k] as string
           if (dropsEmpties && !v) continue
-          if (values.length >= max || valuesLength + v.length > maxLength) {
+          if (
+            values.length >= max ||
+            valuesLength + v.length > maxLength
+          ) {
             break outer
           }
           values.push(v)
@@ -346,7 +351,14 @@ function expand_(
       }
     }
 
-    acc = combine(acc, pre, values, max, maxLength, dropEmpties && !m.post.length)
+    acc = combine(
+      acc,
+      pre,
+      values,
+      max,
+      maxLength,
+      dropEmpties && !m.post.length,
+    )
     if (!m.post.length) break
     str = m.post
   }
