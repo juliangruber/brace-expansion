@@ -258,6 +258,69 @@ t.test('deep chaining does not overflow the stack', async t => {
   })
 })
 
+// The tail fix above bounds stack depth for *chained* groups. Nesting drives a
+// different recursion - one level per `{` for a set's comma members, and one
+// for a set whose body is a single part - which stayed unbounded. Only ~6KB of
+// `{{{...a,b...}}}` was enough to exhaust the stack.
+t.test('deep nesting does not overflow the stack', async t => {
+  // A set nested inside every comma member.
+  const members = '{a,'.repeat(10_000) + 'z' + '}'.repeat(10_000)
+  t.doesNotThrow(() => {
+    t.ok(expand(members).length > 0, 'comma members still return a result')
+  })
+
+  // A set whose body parses to a single part, nested all the way down. This is
+  // the cheapest payload: it crashed at ~3,100 levels, about 6KB of input.
+  const single = '{'.repeat(10_000) + 'a,b' + '}'.repeat(10_000)
+  t.doesNotThrow(() => {
+    t.ok(expand(single).length > 0, 'single set still returns a result')
+  })
+
+  // Neither bound could prevent this - the payloads expand to almost nothing,
+  // so the result set never reaches either limit.
+  t.doesNotThrow(
+    () => expand(single, { max: 1, maxLength: 1 }),
+    'still safe with both output bounds at their lowest',
+  )
+})
+
+t.test('maxDepth option bounds nesting depth', async t => {
+  // The bound counts levels of nesting followed, so a flat set never needs any:
+  // its members are literals, and expanding them is what would recurse.
+  t.strictSame(expand('{a,b}', { maxDepth: 0 }), ['a', 'b'])
+
+  // Each further level costs one. Below the bound the result is exactly what an
+  // unbounded expansion produces.
+  for (const str of [
+    '{a,b}',
+    '{{a,b}}',
+    '{{{a,b}}}',
+    '{a,{b,c}}',
+    '{a,{b,{c,d}}}',
+    'x{{a,b}}y',
+  ]) {
+    t.strictSame(
+      expand(str, { maxDepth: 50 }),
+      expand(str),
+      `${str} is unchanged below the bound`,
+    )
+  }
+
+  // Past it, the group stops expanding and comes back literal rather than
+  // throwing - the same way a group that cannot expand is already handled.
+  t.strictSame(expand('{{a,b}}', { maxDepth: 0 }), ['{{a,b}}'])
+  t.strictSame(expand('{{{a,b}}}', { maxDepth: 1 }), ['{{{a,b}}}'])
+  t.strictSame(expand('x{{a,b}}y', { maxDepth: 0 }), ['x{{a,b}}y'])
+
+  // Partially: the levels within the bound still expand.
+  t.strictSame(expand('{a,{b,c}}', { maxDepth: 0 }), ['a', '{b,c}'])
+  t.strictSame(expand('{a,{b,{c,d}}}', { maxDepth: 1 }), [
+    'a',
+    'b',
+    '{c,d}',
+  ])
+})
+
 // The same guarantee for the *parsing* side. `parseCommaParts` recursed on the
 // remainder of the string once per brace group, so chaining groups inside a
 // brace set exhausted the stack at ~7,000 groups (~29KB of input) even though
