@@ -21,6 +21,16 @@ export const EXPANSION_MAX = 100_000
 // unaffected.
 export const EXPANSION_MAX_LENGTH = 4_000_000
 
+// `expand` recurses once per level of brace *nesting* - both when expanding a
+// set's comma members and when re-wrapping a set whose body is a single part.
+// The CVE-2026-14257 fix made the *tail* iterative (recursion on `m.post`, one
+// level per chained group), which left nesting depth unbounded: about 3,100
+// levels of `{{{...a,b...}}}` - only ~6KB of input - exhausted the native stack
+// and crashed the process. `EXPANSION_MAX_DEPTH` bounds how deep the parser
+// will follow nesting. It sits far above any realistic pattern and well below
+// the depth at which the stack runs out.
+export const EXPANSION_MAX_DEPTH = 1_000
+
 /**
  * @return {number}
  */
@@ -113,7 +123,11 @@ function parseCommaParts (str) {
 export default function expandTop (str, options = {}) {
   if (!str) { return [] }
 
-  const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH } = options
+  const {
+    max = EXPANSION_MAX,
+    maxLength = EXPANSION_MAX_LENGTH,
+    maxDepth = EXPANSION_MAX_DEPTH
+  } = options
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -125,7 +139,7 @@ export default function expandTop (str, options = {}) {
     str = '\\{\\}' + str.slice(2)
   }
 
-  return expand(escapeBraces(str), max, maxLength, true).map(unescapeBraces)
+  return expand(escapeBraces(str), max, maxLength, maxDepth, 0, true).map(unescapeBraces)
 }
 
 /**
@@ -249,9 +263,16 @@ function expandSequence (body, isAlphaSequence, max, maxLength) {
  * @param {string} str
  * @param {number} max
  * @param {number} maxLength
+ * @param {number} maxDepth
+ * @param {number} depth
  * @param {boolean} [isTop]
  */
-function expand (str, max, maxLength, isTop) {
+function expand (str, max, maxLength, maxDepth, depth, isTop) {
+  // Too deeply nested to keep following: treat the rest as literal, the same
+  // way a group that cannot expand is already handled. Truncating rather than
+  // throwing keeps expansion total, matching `max` and `maxLength`.
+  if (depth > maxDepth) { return [str] }
+
   // Consume the string's top-level brace groups left to right, threading a
   // running set of combined prefixes (`acc`). Expanding the tail iteratively -
   // rather than recursing on `m.post` once per group - keeps the native stack
@@ -313,7 +334,7 @@ function expand (str, max, maxLength, isTop) {
       let n = parseCommaParts(m.body)
       if (n.length === 1 && n[0] !== undefined) {
         // x{{a,b}}y ==> x{a}y x{b}y
-        n = expand(n[0], max, maxLength, false).map(embrace)
+        n = expand(n[0], max, maxLength, maxDepth, depth + 1, false).map(embrace)
         // XXX is this necessary? Can't seem to hit it in tests.
         /* c8 ignore start */
         if (n.length === 1) {
@@ -340,7 +361,7 @@ function expand (str, max, maxLength, isTop) {
       let valuesLength = 0
       // eslint-disable-next-line no-labels
       outer: for (let j = 0; j < n.length; j++) {
-        const expanded = expand(n[j], max, maxLength, false)
+        const expanded = expand(n[j], max, maxLength, maxDepth, depth + 1, false)
         for (let k = 0; k < expanded.length; k++) {
           const v = expanded[k]
           if (dropsEmpties && !v) continue
