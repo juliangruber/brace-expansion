@@ -262,19 +262,22 @@ t.test('deep chaining does not overflow the stack', async t => {
 // remainder of the string once per brace group, so chaining groups inside a
 // brace set exhausted the stack at ~7,000 groups (~29KB of input) even though
 // the identical chain outside one was already safe.
-t.test('deeply chained comma groups do not overflow the stack', async t => {
-  const str = '{' + '{a},'.repeat(50_000) + 'b}'
-  t.doesNotThrow(() => {
-    const expanded = expand(str)
-    t.ok(expanded.length > 0, 'still returns a result')
-  })
-  // The overflow happened while parsing, before anything was expanded, so
-  // neither bound could prevent it - and neither is what keeps it safe now.
-  t.doesNotThrow(
-    () => expand(str, { max: 1, maxLength: 1 }),
-    'still safe with both bounds set as low as they go',
-  )
-})
+t.test(
+  'deeply chained comma groups do not overflow the stack',
+  async t => {
+    const str = '{' + '{a},'.repeat(50_000) + 'b}'
+    t.doesNotThrow(() => {
+      const expanded = expand(str)
+      t.ok(expanded.length > 0, 'still returns a result')
+    })
+    // The overflow happened while parsing, before anything was expanded, so
+    // neither bound could prevent it - and neither is what keeps it safe now.
+    t.doesNotThrow(
+      () => expand(str, { max: 1, maxLength: 1 }),
+      'still safe with both bounds set as low as they go',
+    )
+  },
+)
 
 // `push.apply(target, items)` passes one argument per element, so a single
 // large array overflowed the stack with no recursion at all - this input
