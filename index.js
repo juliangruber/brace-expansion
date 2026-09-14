@@ -52,6 +52,17 @@ function unescapeBraces (str) {
     .split(escPeriod).join('.')
 }
 
+// Like `target.push(...items)` but doesn't overflow the stack
+/**
+ * @param {string[]} target
+ * @param {string[]} items
+ */
+function pushAll (target, items) {
+  for (let i = 0; i < items.length; i++) {
+    target.push(items[i])
+  }
+}
+
 /**
  * Basically just str.split(","), but handling cases
  * where we have nested braced sections, which should be
@@ -59,26 +70,40 @@ function unescapeBraces (str) {
  * @param {string} str
  */
 function parseCommaParts (str) {
-  if (!str) { return [''] }
-
   const parts = []
-  const m = balanced('{', '}', str)
 
-  if (!m) { return str.split(',') }
+  // Walk the brace groups iteratively. Recursing on `post` once per group let a
+  // chain of them exhaust the stack - the parsing-side counterpart to
+  // the `expand` overflow fixed for CVE-2026-14257, and not something `max` or
+  // `maxLength` can bound, since it happens before expansion.
+  //
+  // The part the next chunk continues
+  let carry = ''
 
-  const { pre, body, post } = m
-  const p = pre.split(',')
+  for (;;) {
+    const m = balanced('{', '}', str)
 
-  p[p.length - 1] += '{' + body + '}'
-  const postParts = parseCommaParts(post)
-  if (post.length) {
-    p[p.length - 1] += postParts.shift()
-    p.push.apply(p, postParts)
+    if (!m) {
+      const tail = str.split(',')
+      tail[0] = carry + tail[0]
+      pushAll(parts, tail)
+      return parts
+    }
+
+    const { pre, body, post } = m
+    const p = pre.split(',')
+    p[0] = carry + p[0]
+    p[p.length - 1] += '{' + body + '}'
+
+    if (!post.length) {
+      pushAll(parts, p)
+      return parts
+    }
+
+    carry = p.pop()
+    pushAll(parts, p)
+    str = post
   }
-
-  parts.push.apply(parts, p)
-
-  return parts
 }
 
 /**
