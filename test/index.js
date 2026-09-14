@@ -353,6 +353,53 @@ t.test('a large comma set does not overflow the stack', async t => {
   })
 })
 
+// Bash keeps a quirk where a brace group followed by a comma set still expands
+// (`{a},b}`). The parser rewrites the string and restarts the scan, absorbing
+// one `}` per pass, so `n` trailing braces cost `n` passes over a string that
+// itself grows by one `escClose` sentinel each time - quadratic in `n`. 128KB
+// of this shape blocked the event loop for 27 seconds to produce 2 results.
+t.test('the {a},b} rewrite does not run in quadratic time', async t => {
+  const build = n => '{a}' + '}'.repeat(n) + ',z}'
+
+  const startTime = performance.now()
+  expand(build(128_000))
+  const elapsed = performance.now() - startTime
+  t.ok(
+    elapsed < 2000,
+    `Expected time (${elapsed}ms) to be less than 2000ms`,
+  )
+
+  // Neither output bound applies: the payload yields a couple of results at any
+  // size, so the cost is all in parsing.
+  t.doesNotThrow(() => expand(build(128_000), { max: 1, maxLength: 1 }))
+})
+
+t.test('maxRewrites option bounds the rescan count', async t => {
+  const build = n => '{a}' + '}'.repeat(n) + ',z}'
+
+  // Real `{a},b}` input needs a handful of passes, and is untouched.
+  t.strictSame(expand('{a},b}'), ['a}', 'b'])
+  t.strictSame(expand('a{},b}c'), ['a}c', 'abc'])
+  t.strictSame(expand('{a},b}', { maxRewrites: 1000 }), expand('{a},b}'))
+
+  // Below the bound the result matches an unbounded expansion exactly.
+  for (const n of [1, 10, 100]) {
+    t.strictSame(
+      expand(build(n), { maxRewrites: 1000 }),
+      expand(build(n), { maxRewrites: 100_000 }),
+      `${n} trailing braces are unchanged below the bound`,
+    )
+  }
+
+  // Past it the scan stops restarting and the rest stays literal, rather than
+  // throwing - the same way `max` and `maxLength` truncate.
+  t.strictSame(expand('{a},b}', { maxRewrites: 0 }), ['{a},b}'])
+  t.ok(
+    expand(build(50), { maxRewrites: 10 })[0].startsWith('{a}'),
+    'past the bound the group comes back literal',
+  )
+})
+
 t.test('maxLength option bounds output size', async t => {
   const str = '{a,b}'.repeat(1500)
   const expanded = expand(str, { maxLength: 100_000 })
