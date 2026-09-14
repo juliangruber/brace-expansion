@@ -31,6 +31,16 @@ export const EXPANSION_MAX_LENGTH = 4_000_000
 // the depth at which the stack runs out.
 export const EXPANSION_MAX_DEPTH = 1_000
 
+// Bash keeps a quirk where a brace group followed by a comma set still expands
+// (`{a},b}`). The parser implements it by rewriting the string and restarting
+// the scan, absorbing one `}` per pass. `n` trailing braces therefore cost `n`
+// full passes over a string that itself grows by one `escClose` sentinel each
+// time - quadratic in `n`, with a ~26x constant from the sentinel's length.
+// 128KB of `'{a}' + '}'.repeat(n) + ',z}'` blocked the event loop for 27
+// seconds to produce two results. `EXPANSION_MAX_REWRITES` bounds how many
+// times the scan may restart. Real `{a},b}` input needs a handful.
+export const EXPANSION_MAX_REWRITES = 1_000
+
 /**
  * @return {number}
  */
@@ -126,7 +136,8 @@ export default function expandTop (str, options = {}) {
   const {
     max = EXPANSION_MAX,
     maxLength = EXPANSION_MAX_LENGTH,
-    maxDepth = EXPANSION_MAX_DEPTH
+    maxDepth = EXPANSION_MAX_DEPTH,
+    maxRewrites = EXPANSION_MAX_REWRITES
   } = options
 
   // I don't know why Bash 4.3 does this, but it does.
@@ -139,7 +150,7 @@ export default function expandTop (str, options = {}) {
     str = '\\{\\}' + str.slice(2)
   }
 
-  return expand(escapeBraces(str), max, maxLength, maxDepth, 0, true).map(unescapeBraces)
+  return expand(escapeBraces(str), max, maxLength, maxDepth, 0, maxRewrites, true).map(unescapeBraces)
 }
 
 /**
@@ -265,9 +276,10 @@ function expandSequence (body, isAlphaSequence, max, maxLength) {
  * @param {number} maxLength
  * @param {number} maxDepth
  * @param {number} depth
+ * @param {number} maxRewrites
  * @param {boolean} [isTop]
  */
-function expand (str, max, maxLength, maxDepth, depth, isTop) {
+function expand (str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
   // Too deeply nested to keep following: treat the rest as literal, the same
   // way a group that cannot expand is already handled. Truncating rather than
   // throwing keeps expansion total, matching `max` and `maxLength`.
@@ -285,6 +297,9 @@ function expand (str, max, maxLength, maxDepth, depth, isTop) {
   // comma set - a sequence like `{a..\}` may legitimately yield ''. The drop
   // is on the final strings, so it is applied to whichever `combine` produces
   // them (the one with no brace set left in the tail).
+  // How many times the `{a},b}` rewrite below has restarted the scan. Each pass
+  // re-reads the whole string, so leaving this unbounded is quadratic.
+  let rewrites = 0
   let dropEmpties = false
   let firstGroup = true
 
@@ -313,7 +328,8 @@ function expand (str, max, maxLength, maxDepth, depth, isTop) {
     const isOptions = m.body.indexOf(',') >= 0
     if (!isSequence && !isOptions) {
       // {a},b}
-      if (m.post.match(/,(?!,).*\}/)) {
+      if (rewrites < maxRewrites && m.post.match(/,(?!,).*\}/)) {
+        rewrites++
         str = m.pre + '{' + m.body + escClose + m.post
         isTop = true
         continue
@@ -334,7 +350,7 @@ function expand (str, max, maxLength, maxDepth, depth, isTop) {
       let n = parseCommaParts(m.body)
       if (n.length === 1 && n[0] !== undefined) {
         // x{{a,b}}y ==> x{a}y x{b}y
-        n = expand(n[0], max, maxLength, maxDepth, depth + 1, false).map(embrace)
+        n = expand(n[0], max, maxLength, maxDepth, depth + 1, maxRewrites, false).map(embrace)
         // XXX is this necessary? Can't seem to hit it in tests.
         /* c8 ignore start */
         if (n.length === 1) {
@@ -361,7 +377,7 @@ function expand (str, max, maxLength, maxDepth, depth, isTop) {
       let valuesLength = 0
       // eslint-disable-next-line no-labels
       outer: for (let j = 0; j < n.length; j++) {
-        const expanded = expand(n[j], max, maxLength, maxDepth, depth + 1, false)
+        const expanded = expand(n[j], max, maxLength, maxDepth, depth + 1, maxRewrites, false)
         for (let k = 0; k < expanded.length; k++) {
           const v = expanded[k]
           if (dropsEmpties && !v) continue
