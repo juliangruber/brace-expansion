@@ -1,12 +1,12 @@
-var balanced = require('balanced-match');
+var balanced = require('balanced-match')
 
-module.exports = expandTop;
+module.exports = expandTop
 
-var escSlash = '\0SLASH'+Math.random()+'\0';
-var escOpen = '\0OPEN'+Math.random()+'\0';
-var escClose = '\0CLOSE'+Math.random()+'\0';
-var escComma = '\0COMMA'+Math.random()+'\0';
-var escPeriod = '\0PERIOD'+Math.random()+'\0';
+var escSlash = '\0SLASH' + Math.random() + '\0'
+var escOpen = '\0OPEN' + Math.random() + '\0'
+var escClose = '\0CLOSE' + Math.random() + '\0'
+var escComma = '\0COMMA' + Math.random() + '\0'
+var escPeriod = '\0PERIOD' + Math.random() + '\0'
 
 var EXPANSION_MAX = 100000
 
@@ -43,32 +43,41 @@ var EXPANSION_MAX_DEPTH = 1000
 var EXPANSION_MAX_REWRITES = 1000
 
 function numeric(str) {
-  return parseInt(str, 10) == str
-    ? parseInt(str, 10)
-    : str.charCodeAt(0);
+  return parseInt(str, 10) == str ? parseInt(str, 10) : str.charCodeAt(0)
 }
 
 function escapeBraces(str) {
-  return str.split('\\\\').join(escSlash)
-            .split('\\{').join(escOpen)
-            .split('\\}').join(escClose)
-            .split('\\,').join(escComma)
-            .split('\\.').join(escPeriod);
+  return str
+    .split('\\\\')
+    .join(escSlash)
+    .split('\\{')
+    .join(escOpen)
+    .split('\\}')
+    .join(escClose)
+    .split('\\,')
+    .join(escComma)
+    .split('\\.')
+    .join(escPeriod)
 }
 
 function unescapeBraces(str) {
-  return str.split(escSlash).join('\\')
-            .split(escOpen).join('{')
-            .split(escClose).join('}')
-            .split(escComma).join(',')
-            .split(escPeriod).join('.');
+  return str
+    .split(escSlash)
+    .join('\\')
+    .split(escOpen)
+    .join('{')
+    .split(escClose)
+    .join('}')
+    .split(escComma)
+    .join(',')
+    .split(escPeriod)
+    .join('.')
 }
-
 
 // Like `target.push(...items)` but doesn't overflow the stack
 function pushAll(target, items) {
   for (var i = 0; i < items.length; i++) {
-    target.push(items[i]);
+    target.push(items[i])
   }
 }
 
@@ -76,7 +85,7 @@ function pushAll(target, items) {
 // where we have nested braced sections, which should be
 // treated as individual members, like {a,{b,c},d}
 function parseCommaParts(str) {
-  var parts = [];
+  var parts = []
 
   // Walk the brace groups iteratively. Recursing on `post` once per group let a
   // chain of them exhaust the stack - the parsing-side counterpart to
@@ -84,46 +93,50 @@ function parseCommaParts(str) {
   // `maxLength` can bound, since it happens before expansion.
   //
   // The part the next chunk continues
-  var carry = '';
+  var carry = ''
 
   for (;;) {
-    var m = balanced('{', '}', str);
+    var m = balanced('{', '}', str)
 
     if (!m) {
-      var tail = str.split(',');
-      tail[0] = carry + tail[0];
-      pushAll(parts, tail);
-      return parts;
+      var tail = str.split(',')
+      tail[0] = carry + tail[0]
+      pushAll(parts, tail)
+      return parts
     }
 
-    var pre = m.pre;
-    var body = m.body;
-    var post = m.post;
-    var p = pre.split(',');
+    var pre = m.pre
+    var body = m.body
+    var post = m.post
+    var p = pre.split(',')
 
-    p[0] = carry + p[0];
-    p[p.length-1] += '{' + body + '}';
+    p[0] = carry + p[0]
+    p[p.length - 1] += '{' + body + '}'
 
     if (!post.length) {
-      pushAll(parts, p);
-      return parts;
+      pushAll(parts, p)
+      return parts
     }
 
-    carry = p.pop();
-    pushAll(parts, p);
-    str = post;
+    carry = p.pop()
+    pushAll(parts, p)
+    str = post
   }
 }
 
 function expandTop(str, options) {
-  if (!str)
-    return [];
+  if (!str) return []
 
-  options = options || {};
-  var max = options.max == null ? EXPANSION_MAX : options.max;
-  var maxLength = options.maxLength == null ? EXPANSION_MAX_LENGTH : options.maxLength;
-  var maxDepth = options.maxDepth == null ? EXPANSION_MAX_DEPTH : options.maxDepth;
-  var maxRewrites = options.maxRewrites == null ? EXPANSION_MAX_REWRITES : options.maxRewrites;
+  options = options || {}
+  var max = options.max == null ? EXPANSION_MAX : options.max
+  var maxLength =
+    options.maxLength == null ? EXPANSION_MAX_LENGTH : options.maxLength
+  var maxDepth =
+    options.maxDepth == null ? EXPANSION_MAX_DEPTH : options.maxDepth
+  var maxRewrites =
+    options.maxRewrites == null ?
+      EXPANSION_MAX_REWRITES
+    : options.maxRewrites
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -132,24 +145,32 @@ function expandTop(str, options) {
   // One could argue that this is a bug in Bash, but since the goal of
   // this module is to match Bash's rules, we escape a leading {}
   if (str.substr(0, 2) === '{}') {
-    str = '\\{\\}' + str.substr(2);
+    str = '\\{\\}' + str.substr(2)
   }
 
-  return expand(escapeBraces(str), max, maxLength, maxDepth, 0, maxRewrites, true).map(unescapeBraces);
+  return expand(
+    escapeBraces(str),
+    max,
+    maxLength,
+    maxDepth,
+    0,
+    maxRewrites,
+    true,
+  ).map(unescapeBraces)
 }
 
 function embrace(str) {
-  return '{' + str + '}';
+  return '{' + str + '}'
 }
 function isPadded(el) {
-  return /^-?0\d/.test(el);
+  return /^-?0\d/.test(el)
 }
 
 function lte(i, y) {
-  return i <= y;
+  return i <= y
 }
 function gte(i, y) {
-  return i >= y;
+  return i >= y
 }
 
 // Build `{ acc[a] + pre + values[v] }` for every combination, capping the
@@ -157,14 +178,7 @@ function gte(i, y) {
 // This is the one place output grows, so bounding it here keeps the single
 // accumulator - and therefore memory - flat regardless of how many brace groups
 // are combined (CVE-2026-14257).
-function combine(
-  acc,
-  pre,
-  values,
-  max,
-  maxLength,
-  dropEmpties
-) {
+function combine(acc, pre, values, max, maxLength, dropEmpties) {
   var out = []
   var length = 0
   for (var a = 0; a < acc.length; a++) {
@@ -184,12 +198,7 @@ function combine(
 
 // The expansion values of a single numeric (`1..5`) or alphabetic (`a..e..2`)
 // sequence body.
-function expandSequence(
-  body,
-  isAlphaSequence,
-  max,
-  maxLength
-) {
+function expandSequence(body, isAlphaSequence, max, maxLength) {
   var n = body.split(/\.\./)
   var N = []
   // A sequence body always splits into two or three parts, but the compiler
@@ -243,20 +252,12 @@ function expandSequence(
   return N
 }
 
-function expand(
-  str,
-  max,
-  maxLength,
-  maxDepth,
-  depth,
-  maxRewrites,
-  isTop
-) {
+function expand(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
   // Too deeply nested to keep following: treat the rest as literal, the same
   // way a group that cannot expand is already handled. Truncating rather than
   // throwing keeps expansion total, matching `max` and `maxLength`.
   if (depth > maxDepth) {
-    return [str];
+    return [str]
   }
 
   // Consume the string's top-level brace groups left to right, threading a
@@ -295,7 +296,7 @@ function expand(
         [''],
         max,
         maxLength,
-        dropEmpties && !m.post.length
+        dropEmpties && !m.post.length,
       )
       firstGroup = false
       if (!m.post.length) break
@@ -303,17 +304,19 @@ function expand(
       continue
     }
 
-    var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
-    var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
-    var isSequence = isNumericSequence || isAlphaSequence;
-    var isOptions = m.body.indexOf(',') >= 0;
+    var isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body)
+    var isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(
+      m.body,
+    )
+    var isSequence = isNumericSequence || isAlphaSequence
+    var isOptions = m.body.indexOf(',') >= 0
     if (!isSequence && !isOptions) {
       // {a},b}
       if (rewrites < maxRewrites && m.post.match(/,(?!,).*\}/)) {
-        rewrites++;
-        str = m.pre + '{' + m.body + escClose + m.post;
-        isTop = true;
-        continue;
+        rewrites++
+        str = m.pre + '{' + m.body + escClose + m.post
+        isTop = true
+        continue
       }
       // Nothing here expands, so the whole remaining string is literal.
       return combine(
@@ -322,7 +325,7 @@ function expand(
         [''],
         max,
         maxLength,
-        dropEmpties
+        dropEmpties,
       )
     }
 
@@ -331,14 +334,22 @@ function expand(
       firstGroup = false
     }
 
-    var values;
+    var values
     if (isSequence) {
-      values = expandSequence(m.body, isAlphaSequence, max, maxLength);
+      values = expandSequence(m.body, isAlphaSequence, max, maxLength)
     } else {
-      var n = parseCommaParts(m.body);
+      var n = parseCommaParts(m.body)
       if (n.length === 1 && n[0] !== undefined) {
         // x{{a,b}}y ==> x{a}y x{b}y
-        n = expand(n[0], max, maxLength, maxDepth, depth + 1, maxRewrites, false).map(embrace);
+        n = expand(
+          n[0],
+          max,
+          maxLength,
+          maxDepth,
+          depth + 1,
+          maxRewrites,
+          false,
+        ).map(embrace)
         //XXX is this necessary? Can't seem to hit it in tests.
         /* c8 ignore start */
         if (n.length === 1) {
@@ -348,7 +359,7 @@ function expand(
             [''],
             max,
             maxLength,
-            dropEmpties && !m.post.length
+            dropEmpties && !m.post.length,
           )
           if (!m.post.length) break
           str = m.post
@@ -372,11 +383,22 @@ function expand(
       values = []
       var valuesLength = 0
       outer: for (var j = 0; j < n.length; j++) {
-        var expanded = expand(n[j], max, maxLength, maxDepth, depth + 1, maxRewrites, false)
+        var expanded = expand(
+          n[j],
+          max,
+          maxLength,
+          maxDepth,
+          depth + 1,
+          maxRewrites,
+          false,
+        )
         for (var k = 0; k < expanded.length; k++) {
           var v = expanded[k]
           if (dropsEmpties && !v) continue
-          if (values.length >= max || valuesLength + v.length > maxLength) {
+          if (
+            values.length >= max ||
+            valuesLength + v.length > maxLength
+          ) {
             break outer
           }
           values.push(v)
@@ -385,7 +407,14 @@ function expand(
       }
     }
 
-    acc = combine(acc, pre, values, max, maxLength, dropEmpties && !m.post.length)
+    acc = combine(
+      acc,
+      pre,
+      values,
+      max,
+      maxLength,
+      dropEmpties && !m.post.length,
+    )
     if (!m.post.length) break
     str = m.post
   }

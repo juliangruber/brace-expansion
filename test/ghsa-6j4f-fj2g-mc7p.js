@@ -1,5 +1,5 @@
-var test = require('tape');
-var expand = require('..');
+var test = require('tape')
+var expand = require('..')
 
 // `parseCommaParts` recursed on the remainder of the string once per brace
 // group, so chaining groups inside a brace set exhausted the native stack at
@@ -16,12 +16,11 @@ test('deeply chained comma groups do not overflow the stack', function (t) {
 
   // The overflow happened while parsing, before anything was expanded, so
   // neither bound could prevent it - and neither is what keeps it safe now.
-  t.doesNotThrow(
-    function () { expand(str, { max: 1, maxLength: 1 }) },
-    'still safe with both bounds set as low as they go'
-  )
+  t.doesNotThrow(function () {
+    expand(str, { max: 1, maxLength: 1 })
+  }, 'still safe with both bounds set as low as they go')
 
-  t.end();
+  t.end()
 })
 
 // `push.apply(target, items)` passes one argument per element, so a single
@@ -34,7 +33,7 @@ test('a large comma set does not overflow the stack', function (t) {
     t.ok(expanded.length > 0, 'still returns a (truncated) result')
   })
 
-  t.end();
+  t.end()
 })
 
 // The rewrite must not change what the parser produces.
@@ -49,5 +48,5 @@ test('nested comma groups still parse as before', function (t) {
   t.deepEqual(expand('{}'), ['{}'])
   t.deepEqual(expand('{a,b'), ['{a,b'])
 
-  t.end();
+  t.end()
 })
