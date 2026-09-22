@@ -17,12 +17,12 @@ test('total length across comma alternatives is bounded', async t => {
   var totalLength = expanded.reduce((sum, s) => sum + s.length, 0)
   t.ok(
     totalLength <= 50,
-    `Expected total length (${totalLength}) to respect maxLength`,
+    `Expected total length (${totalLength}) to respect maxLength`
   )
   t.ok(expanded.length > 0, 'still returns a (truncated) result')
   t.ok(
     endTime - startTime < 500,
-    `Expected time (${endTime - startTime}ms) to be less than 500ms`,
+    `Expected time (${endTime - startTime}ms) to be less than 500ms`
   )
 
   // Regression case from the report: 400 alternatives, each individually
@@ -34,7 +34,7 @@ test('total length across comma alternatives is bounded', async t => {
     var bigTotal = bigExpanded.reduce((sum, s) => sum + s.length, 0)
     t.ok(
       bigTotal <= 4_000_000,
-      `Expected total length (${bigTotal}) to stay bounded`,
+      `Expected total length (${bigTotal}) to stay bounded`
     )
   })
 
@@ -53,19 +53,19 @@ test('padded sequences respect maxLength while generating', async t => {
   var totalLength = expanded.reduce((sum, s) => sum + s.length, 0)
   t.ok(
     totalLength <= 4_000_000,
-    `Expected total length (${totalLength}) to stay bounded`,
+    `Expected total length (${totalLength}) to stay bounded`
   )
   t.ok(expanded.length > 0, 'still returns a (truncated) result')
   t.ok(
     elapsed < 2000,
-    `Expected time (${elapsed}ms) to be less than 2000ms`,
+    `Expected time (${elapsed}ms) to be less than 2000ms`
   )
 
   // Truncating early must not change results that fit within the bound.
   t.same(
     expand('{01..10}'),
     ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'],
-    'padded sequences under the bound are unaffected',
+    'padded sequences under the bound are unaffected'
   )
 
   t.end()
@@ -78,18 +78,18 @@ test('max bounds the number of kept results', async t => {
   t.same(
     expand('{a,,b}', { max: 2 }),
     ['a', 'b'],
-    'dropped empty alternatives do not count against max',
+    'dropped empty alternatives do not count against max'
   )
   t.same(
     expand('{a,,,b,c}', { max: 3 }),
     ['a', 'b', 'c'],
-    'consecutive empty alternatives do not count against max',
+    'consecutive empty alternatives do not count against max'
   )
   // Here the empties survive as `xy`, so they are results and do count.
   t.same(
     expand('x{a,,b}y', { max: 2 }),
     ['xay', 'xy'],
-    'kept empty alternatives still count against max',
+    'kept empty alternatives still count against max'
   )
 
   t.end()

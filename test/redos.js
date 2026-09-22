@@ -10,6 +10,6 @@ test('redos', function () {
   const timeTaken = endTime - startTime
   assert.ok(
     timeTaken < 1000,
-    `Expected time (${timeTaken}ms) to be less than 1000ms`,
+    `Expected time (${timeTaken}ms) to be less than 1000ms`
   )
 })
