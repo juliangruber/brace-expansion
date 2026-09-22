@@ -11,21 +11,27 @@ test('deep nesting does not overflow the stack', async t => {
   // A set nested inside every comma member. Crashed at ~3,900 levels (~15.6KB).
   const members = '{a,'.repeat(10000) + 'z' + '}'.repeat(10000)
   assert.doesNotThrow(() => {
-    assert.ok(expand(members).length > 0, 'comma members still return a result')
+    assert.ok(
+      expand(members).length > 0,
+      'comma members still return a result',
+    )
   })
 
   // A set whose body parses to a single part, nested all the way down. The
   // cheapest payload: crashed at ~3,100 levels, about 6KB of input.
   const single = '{'.repeat(10000) + 'a,b' + '}'.repeat(10000)
   assert.doesNotThrow(() => {
-    assert.ok(expand(single).length > 0, 'single set still returns a result')
+    assert.ok(
+      expand(single).length > 0,
+      'single set still returns a result',
+    )
   })
 
   // Neither output bound could prevent this - the payloads expand to almost
   // nothing, so the result set never reaches either limit.
   assert.doesNotThrow(
     () => expand(single, { max: 1, maxLength: 1 }),
-    'still safe with both output bounds at their lowest'
+    'still safe with both output bounds at their lowest',
   )
 })
 
@@ -41,25 +47,33 @@ test('maxDepth option bounds nesting depth', async t => {
     '{{{a,b}}}',
     '{a,{b,c}}',
     '{a,{b,{c,d}}}',
-    'x{{a,b}}y'
+    'x{{a,b}}y',
   ]) {
     assert.deepStrictEqual(
       expand(str, { maxDepth: 50 }),
       expand(str),
-      `${str} is unchanged below the bound`
+      `${str} is unchanged below the bound`,
     )
   }
 
   // Past it, the group stops expanding and comes back literal rather than
   // throwing - the same way a group that cannot expand is already handled.
   assert.deepStrictEqual(expand('{{a,b}}', { maxDepth: 0 }), ['{{a,b}}'])
-  assert.deepStrictEqual(expand('{{{a,b}}}', { maxDepth: 1 }), ['{{{a,b}}}'])
-  assert.deepStrictEqual(expand('x{{a,b}}y', { maxDepth: 0 }), ['x{{a,b}}y'])
+  assert.deepStrictEqual(expand('{{{a,b}}}', { maxDepth: 1 }), [
+    '{{{a,b}}}',
+  ])
+  assert.deepStrictEqual(expand('x{{a,b}}y', { maxDepth: 0 }), [
+    'x{{a,b}}y',
+  ])
 
   // Partially: the levels within the bound still expand.
-  assert.deepStrictEqual(expand('{a,{b,c}}', { maxDepth: 0 }), ['a', '{b,c}'])
-  assert.deepStrictEqual(
-    expand('{a,{b,{c,d}}}', { maxDepth: 1 }),
-    ['a', 'b', '{c,d}']
-  )
+  assert.deepStrictEqual(expand('{a,{b,c}}', { maxDepth: 0 }), [
+    'a',
+    '{b,c}',
+  ])
+  assert.deepStrictEqual(expand('{a,{b,{c,d}}}', { maxDepth: 1 }), [
+    'a',
+    'b',
+    '{c,d}',
+  ])
 })

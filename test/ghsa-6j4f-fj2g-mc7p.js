@@ -19,7 +19,7 @@ test('deeply chained comma groups do not overflow the stack', async t => {
   // neither bound could prevent it - and neither is what keeps it safe now.
   assert.doesNotThrow(
     () => expand(str, { max: 1, maxLength: 1 }),
-    'still safe with both bounds set as low as they go'
+    'still safe with both bounds set as low as they go',
   )
 })
 
@@ -40,7 +40,12 @@ test('nested comma groups still parse as before', async t => {
   assert.deepStrictEqual(expand('x{{a,b}}y'), ['x{a}y', 'x{b}y'])
   assert.deepStrictEqual(expand('{a,{b,c},d}'), ['a', 'b', 'c', 'd'])
   assert.deepStrictEqual(expand('{a,{b,c}d,e}'), ['a', 'bd', 'cd', 'e'])
-  assert.deepStrictEqual(expand('x{a,{b,c},d}y'), ['xay', 'xby', 'xcy', 'xdy'])
+  assert.deepStrictEqual(expand('x{a,{b,c},d}y'), [
+    'xay',
+    'xby',
+    'xcy',
+    'xdy',
+  ])
   assert.deepStrictEqual(expand('{a,,b}'), ['a', 'b'])
   assert.deepStrictEqual(expand('{,}'), [])
   assert.deepStrictEqual(expand('{}'), ['{}'])
