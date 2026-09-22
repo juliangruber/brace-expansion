@@ -1,5 +1,5 @@
-var test = require('tape');
-var expand = require('..');
+var test = require('tape')
+var expand = require('..')
 
 // Bypass of CVE-2026-14257's mitigation: each comma-separated alternative
 // (`{alt,alt,...}`) is expanded independently, and `maxLength` only bounded
@@ -38,7 +38,7 @@ test('total length across comma alternatives is bounded', async t => {
     )
   })
 
-  t.end();
+  t.end()
 })
 
 // A padded sequence's element width follows the input, so generating all `max`
@@ -68,7 +68,7 @@ test('padded sequences respect maxLength while generating', async t => {
     'padded sequences under the bound are unaffected',
   )
 
-  t.end();
+  t.end()
 })
 
 // Bounding the intermediate `values` array must not change what `max` counts:
@@ -92,5 +92,5 @@ test('max bounds the number of kept results', async t => {
     'kept empty alternatives still count against max',
   )
 
-  t.end();
+  t.end()
 })

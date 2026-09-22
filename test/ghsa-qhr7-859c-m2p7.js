@@ -1,5 +1,5 @@
-var test = require('tape');
-var expand = require('..');
+var test = require('tape')
+var expand = require('..')
 
 // `expand` recurses once per level of brace *nesting*: once per comma member of
 // a set, and once when re-wrapping a set whose body is a single part. The
@@ -22,12 +22,11 @@ test('deep nesting does not overflow the stack', function (t) {
 
   // Neither output bound could prevent this - the payloads expand to almost
   // nothing, so the result set never reaches either limit.
-  t.doesNotThrow(
-    function () { expand(single, { max: 1, maxLength: 1 }) },
-    'still safe with both output bounds at their lowest'
-  )
+  t.doesNotThrow(function () {
+    expand(single, { max: 1, maxLength: 1 })
+  }, 'still safe with both output bounds at their lowest')
 
-  t.end();
+  t.end()
 })
 
 test('maxDepth option bounds nesting depth', function (t) {
@@ -36,12 +35,19 @@ test('maxDepth option bounds nesting depth', function (t) {
   t.deepEqual(expand('{a,b}', { maxDepth: 0 }), ['a', 'b'])
 
   // Below the bound the result is exactly what an unbounded expansion produces.
-  var cases = ['{a,b}', '{{a,b}}', '{{{a,b}}}', '{a,{b,c}}', '{a,{b,{c,d}}}', 'x{{a,b}}y']
+  var cases = [
+    '{a,b}',
+    '{{a,b}}',
+    '{{{a,b}}}',
+    '{a,{b,c}}',
+    '{a,{b,{c,d}}}',
+    'x{{a,b}}y',
+  ]
   for (var i = 0; i < cases.length; i++) {
     t.deepEqual(
       expand(cases[i], { maxDepth: 50 }),
       expand(cases[i]),
-      cases[i] + ' is unchanged below the bound'
+      cases[i] + ' is unchanged below the bound',
     )
   }
 
@@ -53,7 +59,11 @@ test('maxDepth option bounds nesting depth', function (t) {
 
   // Partially: the levels within the bound still expand.
   t.deepEqual(expand('{a,{b,c}}', { maxDepth: 0 }), ['a', '{b,c}'])
-  t.deepEqual(expand('{a,{b,{c,d}}}', { maxDepth: 1 }), ['a', 'b', '{c,d}'])
+  t.deepEqual(expand('{a,{b,{c,d}}}', { maxDepth: 1 }), [
+    'a',
+    'b',
+    '{c,d}',
+  ])
 
-  t.end();
+  t.end()
 })
