@@ -47,7 +47,7 @@ test('maxDepth option bounds nesting depth', function (t) {
     t.deepEqual(
       expand(cases[i], { maxDepth: 50 }),
       expand(cases[i]),
-      cases[i] + ' is unchanged below the bound',
+      cases[i] + ' is unchanged below the bound'
     )
   }
 

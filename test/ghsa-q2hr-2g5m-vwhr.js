@@ -16,7 +16,7 @@ test('the {a},b} rewrite does not run in quadratic time', function (t) {
   var elapsed = performance.now() - startTime
   t.ok(
     elapsed < 2000,
-    'Expected time (' + elapsed + 'ms) to be less than 2000ms',
+    'Expected time (' + elapsed + 'ms) to be less than 2000ms'
   )
 
   // Neither output bound applies: the payload yields a couple of results at any
@@ -43,7 +43,7 @@ test('maxRewrites option bounds the rescan count', function (t) {
     t.deepEqual(
       expand(build(ns[i]), { maxRewrites: 1000 }),
       expand(build(ns[i]), { maxRewrites: 100000 }),
-      ns[i] + ' trailing braces are unchanged below the bound',
+      ns[i] + ' trailing braces are unchanged below the bound'
     )
   }
 
@@ -52,7 +52,7 @@ test('maxRewrites option bounds the rescan count', function (t) {
   t.deepEqual(expand('{a},b}', { maxRewrites: 0 }), ['{a},b}'])
   t.ok(
     expand(build(50), { maxRewrites: 10 })[0].indexOf('{a}') === 0,
-    'past the bound the group comes back literal',
+    'past the bound the group comes back literal'
   )
 
   t.end()
