@@ -15,13 +15,13 @@ test('the {a},b} rewrite does not run in quadratic time', async t => {
   const elapsed = performance.now() - startTime
   assert.ok(
     elapsed < 2000,
-    `Expected time (${elapsed}ms) to be less than 2000ms`,
+    `Expected time (${elapsed}ms) to be less than 2000ms`
   )
 
   // Neither output bound applies: the payload yields a couple of results at any
   // size, so the cost is all in parsing.
   assert.doesNotThrow(() =>
-    expand(build(128000), { max: 1, maxLength: 1 }),
+    expand(build(128000), { max: 1, maxLength: 1 })
   )
 })
 
@@ -37,7 +37,7 @@ test('maxRewrites option bounds the rescan count', async t => {
     assert.deepStrictEqual(
       expand(build(n), { maxRewrites: 1000 }),
       expand(build(n), { maxRewrites: 100000 }),
-      `${n} trailing braces are unchanged below the bound`,
+      `${n} trailing braces are unchanged below the bound`
     )
   }
 
@@ -46,6 +46,6 @@ test('maxRewrites option bounds the rescan count', async t => {
   assert.deepStrictEqual(expand('{a},b}', { maxRewrites: 0 }), ['{a},b}'])
   assert.ok(
     expand(build(50), { maxRewrites: 10 })[0].startsWith('{a}'),
-    'past the bound the group comes back literal',
+    'past the bound the group comes back literal'
   )
 })

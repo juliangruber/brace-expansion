@@ -19,7 +19,7 @@ test('deeply chained comma groups do not overflow the stack', async t => {
   // neither bound could prevent it - and neither is what keeps it safe now.
   assert.doesNotThrow(
     () => expand(str, { max: 1, maxLength: 1 }),
-    'still safe with both bounds set as low as they go',
+    'still safe with both bounds set as low as they go'
   )
 })
 

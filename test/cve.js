@@ -18,16 +18,16 @@ test('total expansion length is bounded', function () {
   const totalLength = expanded.reduce((sum, s) => sum + s.length, 0)
   assert.ok(
     totalLength <= EXPANSION_MAX_LENGTH,
-    `Expected total length (${totalLength}) to be bounded`,
+    `Expected total length (${totalLength}) to be bounded`
   )
   assert.ok(expanded.length > 0, 'still returns a (truncated) result')
   assert.ok(
     expanded.every(s => /^[ab]+$/.test(s)),
-    'results are valid expansions',
+    'results are valid expansions'
   )
   assert.ok(
     endTime - startTime < 5000,
-    `Expected time (${endTime - startTime}ms) to be less than 5000ms`,
+    `Expected time (${endTime - startTime}ms) to be less than 5000ms`
   )
 
   // The bound is a single accumulator, not a per-level limit, so it holds no
@@ -35,11 +35,11 @@ test('total expansion length is bounded', function () {
   for (const groups of [100, 1500, 5000]) {
     const total = expand('{a,b}'.repeat(groups)).reduce(
       (sum, s) => sum + s.length,
-      0,
+      0
     )
     assert.ok(
       total <= EXPANSION_MAX_LENGTH,
-      `Expected total length (${total}) to stay bounded at ${groups} groups`,
+      `Expected total length (${total}) to stay bounded at ${groups} groups`
     )
   }
 })
@@ -56,7 +56,7 @@ test('deep chaining does not overflow the stack', function () {
     assert.ok(
       expanded.reduce((sum, s) => sum + s.length, 0) <=
         EXPANSION_MAX_LENGTH,
-      'output stays bounded',
+      'output stays bounded'
     )
   })
 })
@@ -67,7 +67,7 @@ test('maxLength option bounds output size', function () {
   const totalLength = expanded.reduce((sum, s) => sum + s.length, 0)
   assert.ok(
     totalLength <= 100_000,
-    `Expected total length (${totalLength}) to respect maxLength`,
+    `Expected total length (${totalLength}) to respect maxLength`
   )
 
   // The `${...}` literal branch combines its body with the expanded tail and
@@ -77,7 +77,7 @@ test('maxLength option bounds output size', function () {
   const dollarLength = expandedDollar.reduce((sum, s) => sum + s.length, 0)
   assert.ok(
     dollarLength <= 100_000,
-    `Expected total length (${dollarLength}) to respect maxLength`,
+    `Expected total length (${dollarLength}) to respect maxLength`
   )
 })
 

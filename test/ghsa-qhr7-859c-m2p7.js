@@ -13,7 +13,7 @@ test('deep nesting does not overflow the stack', async t => {
   assert.doesNotThrow(() => {
     assert.ok(
       expand(members).length > 0,
-      'comma members still return a result',
+      'comma members still return a result'
     )
   })
 
@@ -23,7 +23,7 @@ test('deep nesting does not overflow the stack', async t => {
   assert.doesNotThrow(() => {
     assert.ok(
       expand(single).length > 0,
-      'single set still returns a result',
+      'single set still returns a result'
     )
   })
 
@@ -31,7 +31,7 @@ test('deep nesting does not overflow the stack', async t => {
   // nothing, so the result set never reaches either limit.
   assert.doesNotThrow(
     () => expand(single, { max: 1, maxLength: 1 }),
-    'still safe with both output bounds at their lowest',
+    'still safe with both output bounds at their lowest'
   )
 })
 
@@ -52,7 +52,7 @@ test('maxDepth option bounds nesting depth', async t => {
     assert.deepStrictEqual(
       expand(str, { maxDepth: 50 }),
       expand(str),
-      `${str} is unchanged below the bound`,
+      `${str} is unchanged below the bound`
     )
   }
 
