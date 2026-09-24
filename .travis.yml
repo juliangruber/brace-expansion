@@ -1,9 +1,9 @@
 sudo: false
 arch:
- - amd64
- - ppc64le
+  - amd64
+  - ppc64le
 language: node_js
 node_js:
-  - "10"
-  - "12"
-  - "14"
+  - '10'
+  - '12'
+  - '14'
