@@ -40,7 +40,12 @@ test('nested comma groups still parse as before', async t => {
   assert.deepStrictEqual(expand('x{{a,b}}y'), ['x{a}y', 'x{b}y'])
   assert.deepStrictEqual(expand('{a,{b,c},d}'), ['a', 'b', 'c', 'd'])
   assert.deepStrictEqual(expand('{a,{b,c}d,e}'), ['a', 'bd', 'cd', 'e'])
-  assert.deepStrictEqual(expand('x{a,{b,c},d}y'), ['xay', 'xby', 'xcy', 'xdy'])
+  assert.deepStrictEqual(expand('x{a,{b,c},d}y'), [
+    'xay',
+    'xby',
+    'xcy',
+    'xdy',
+  ])
   assert.deepStrictEqual(expand('{a,,b}'), ['a', 'b'])
   assert.deepStrictEqual(expand('{,}'), [])
   assert.deepStrictEqual(expand('{}'), ['{}'])

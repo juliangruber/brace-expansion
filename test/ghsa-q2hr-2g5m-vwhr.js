@@ -13,11 +13,16 @@ test('the {a},b} rewrite does not run in quadratic time', async t => {
   const startTime = performance.now()
   expand(build(128000))
   const elapsed = performance.now() - startTime
-  assert.ok(elapsed < 2000, `Expected time (${elapsed}ms) to be less than 2000ms`)
+  assert.ok(
+    elapsed < 2000,
+    `Expected time (${elapsed}ms) to be less than 2000ms`
+  )
 
   // Neither output bound applies: the payload yields a couple of results at any
   // size, so the cost is all in parsing.
-  assert.doesNotThrow(() => expand(build(128000), { max: 1, maxLength: 1 }))
+  assert.doesNotThrow(() =>
+    expand(build(128000), { max: 1, maxLength: 1 })
+  )
 })
 
 test('maxRewrites option bounds the rescan count', async t => {
