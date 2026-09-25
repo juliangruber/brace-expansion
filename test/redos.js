@@ -8,5 +8,8 @@ test('redos', function () {
   expand(str)
   const endTime = performance.now()
   const timeTaken = endTime - startTime
-  assert.ok(timeTaken < 1000, `Expected time (${timeTaken}ms) to be less than 1000ms`)
+  assert.ok(
+    timeTaken < 1000,
+    `Expected time (${timeTaken}ms) to be less than 1000ms`
+  )
 })
