@@ -50,6 +50,26 @@ export const EXPANSION_MAX_DEPTH = 1_000
 // times the scan may restart. Real `{a},b}` input needs a handful.
 export const EXPANSION_MAX_REWRITES = 1_000
 
+export type ExpansionLimit =
+  | 'max'
+  | 'maxLength'
+  | 'maxDepth'
+  | 'maxRewrites'
+
+/**
+ * Thrown when `strict: true` and a resource guard prevents a complete
+ * expansion. Without `strict`, those guards still truncate silently.
+ */
+export class ExpansionLimitError extends Error {
+  limit: ExpansionLimit
+
+  constructor(limit: ExpansionLimit) {
+    super(`brace expansion truncated by ${limit}`)
+    this.name = 'ExpansionLimitError'
+    this.limit = limit
+  }
+}
+
 function numeric(str: string) {
   return !isNaN(str as any) ? parseInt(str, 10) : str.charCodeAt(0)
 }
@@ -126,6 +146,11 @@ export type BraceExpansionOptions = {
   maxLength?: number
   maxDepth?: number
   maxRewrites?: number
+  /**
+   * When true, throw {@link ExpansionLimitError} instead of silently
+   * truncating when a resource guard prevents a complete expansion.
+   */
+  strict?: boolean
 }
 
 export function expand(str: string, options: BraceExpansionOptions = {}) {
@@ -138,6 +163,7 @@ export function expand(str: string, options: BraceExpansionOptions = {}) {
     maxLength = EXPANSION_MAX_LENGTH,
     maxDepth = EXPANSION_MAX_DEPTH,
     maxRewrites = EXPANSION_MAX_REWRITES,
+    strict = false,
   } = options
 
   // I don't know why Bash 4.3 does this, but it does.
@@ -158,6 +184,7 @@ export function expand(str: string, options: BraceExpansionOptions = {}) {
     0,
     maxRewrites,
     true,
+    strict,
   ).map(unescapeBraces)
 }
 
@@ -189,17 +216,24 @@ function combine(
   max: number,
   maxLength: number,
   dropEmpties: boolean,
+  strict: boolean,
 ): string[] {
   const out: string[] = []
   let length = 0
   for (let a = 0; a < acc.length; a++) {
     for (let v = 0; v < values.length; v++) {
-      if (out.length >= max) return out
+      if (out.length >= max) {
+        if (strict) throw new ExpansionLimitError('max')
+        return out
+      }
       const expansion = (acc[a] as string) + pre + values[v]
       // Bash drops empty results at the top level. Skip them before they count
       // against `max`, so `max` bounds the number of *kept* results.
       if (dropEmpties && !expansion) continue
-      if (length + expansion.length > maxLength) return out
+      if (length + expansion.length > maxLength) {
+        if (strict) throw new ExpansionLimitError('maxLength')
+        return out
+      }
       out.push(expansion)
       length += expansion.length
     }
@@ -214,6 +248,7 @@ function expandSequence(
   isAlphaSequence: boolean,
   max: number,
   maxLength: number,
+  strict: boolean,
 ): string[] {
   const n = body.split(/\.\./)
   const N: string[] = []
@@ -240,7 +275,8 @@ function expandSequence(
   const pad = n.some(isPadded)
 
   let length = 0
-  for (let i = x; test(i, y) && N.length < max; i += incr) {
+  let i = x
+  for (; test(i, y) && N.length < max; i += incr) {
     let c
     if (isAlphaSequence) {
       c = String.fromCharCode(i)
@@ -261,9 +297,16 @@ function expandSequence(
         }
       }
     }
-    if (length + c.length > maxLength) break
+    if (length + c.length > maxLength) {
+      if (strict) throw new ExpansionLimitError('maxLength')
+      break
+    }
     N.push(c)
     length += c.length
+  }
+  // Stopped early because of `max` while more of the sequence remains.
+  if (strict && test(i, y)) {
+    throw new ExpansionLimitError('max')
   }
   return N
 }
@@ -276,11 +319,17 @@ function expand_(
   depth: number,
   maxRewrites: number,
   isTop: boolean,
+  strict: boolean,
 ): string[] {
   // Too deeply nested to keep following: treat the rest as literal, the same
   // way a group that cannot expand is already handled. Truncating rather than
-  // throwing keeps `expand` total, matching `max` and `maxLength`.
+  // throwing keeps `expand` total, matching `max` and `maxLength`. With
+  // `strict`, that silent truncation becomes an error when there is still a
+  // brace group that would have expanded - a plain leaf like `a` is fine.
   if (depth > maxDepth) {
+    if (strict && balanced('{', '}', str)) {
+      throw new ExpansionLimitError('maxDepth')
+    }
     return [str]
   }
 
@@ -307,7 +356,7 @@ function expand_(
 
     // No brace set left: the rest of the string is literal.
     if (!m) {
-      return combine(acc, str, [''], max, maxLength, dropEmpties)
+      return combine(acc, str, [''], max, maxLength, dropEmpties, strict)
     }
 
     // no need to expand pre, since it is guaranteed to be free of brace-sets
@@ -321,6 +370,7 @@ function expand_(
         max,
         maxLength,
         dropEmpties && !m.post.length,
+        strict,
       )
       firstGroup = false
       if (!m.post.length) break
@@ -336,11 +386,15 @@ function expand_(
     const isOptions = m.body.indexOf(',') >= 0
     if (!isSequence && !isOptions) {
       // {a},b}
-      if (rewrites < maxRewrites && m.post.match(/,(?!,).*\}/)) {
-        rewrites++
-        str = m.pre + '{' + m.body + escClose + m.post
-        isTop = true
-        continue
+      if (m.post.match(/,(?!,).*\}/)) {
+        if (rewrites >= maxRewrites) {
+          if (strict) throw new ExpansionLimitError('maxRewrites')
+        } else {
+          rewrites++
+          str = m.pre + '{' + m.body + escClose + m.post
+          isTop = true
+          continue
+        }
       }
       // Nothing here expands, so the whole remaining string is literal.
       return combine(
@@ -350,6 +404,7 @@ function expand_(
         max,
         maxLength,
         dropEmpties,
+        strict,
       )
     }
 
@@ -360,7 +415,7 @@ function expand_(
 
     let values: string[]
     if (isSequence) {
-      values = expandSequence(m.body, isAlphaSequence, max, maxLength)
+      values = expandSequence(m.body, isAlphaSequence, max, maxLength, strict)
     } else {
       let n = parseCommaParts(m.body)
       if (n.length === 1 && n[0] !== undefined) {
@@ -373,6 +428,7 @@ function expand_(
           depth + 1,
           maxRewrites,
           false,
+          strict,
         ).map(embrace)
         //XXX is this necessary? Can't seem to hit it in tests.
         /* c8 ignore start */
@@ -384,6 +440,7 @@ function expand_(
             max,
             maxLength,
             dropEmpties && !m.post.length,
+            strict,
           )
           if (!m.post.length) break
           str = m.post
@@ -415,6 +472,7 @@ function expand_(
           depth + 1,
           maxRewrites,
           false,
+          strict,
         )
         for (let k = 0; k < expanded.length; k++) {
           const v = expanded[k] as string
@@ -423,6 +481,11 @@ function expand_(
             values.length >= max ||
             valuesLength + v.length > maxLength
           ) {
+            if (strict) {
+              throw new ExpansionLimitError(
+                values.length >= max ? 'max' : 'maxLength',
+              )
+            }
             break outer
           }
           values.push(v)
@@ -438,6 +501,7 @@ function expand_(
       max,
       maxLength,
       dropEmpties && !m.post.length,
+      strict,
     )
     if (!m.post.length) break
     str = m.post

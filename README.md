@@ -75,6 +75,23 @@ const expansions = expand('{a,b}'.repeat(1500), {
 })
 ```
 
+Set `strict: true` to throw an `ExpansionLimitError` instead of silently
+truncating when a guard (`max`, `maxLength`, `maxDepth`, or `maxRewrites`)
+prevents a complete expansion. Without `strict`, the default remains to
+return a partial result.
+
+```js
+import { expand, ExpansionLimitError } from 'brace-expansion'
+
+try {
+  expand('x{1..5}', { max: 2, strict: true })
+} catch (err) {
+  if (err instanceof ExpansionLimitError) {
+    // err.limit is 'max' | 'maxLength' | 'maxDepth' | 'maxRewrites'
+  }
+}
+```
+
 Valid expansions are:
 
 ```js
