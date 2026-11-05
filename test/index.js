@@ -1,5 +1,5 @@
 import t from 'tap'
-import { expand } from '../dist/esm/index.js'
+import { expand, ExpansionLimitError } from '../dist/esm/index.js'
 import fs from 'fs'
 
 t.test('bash-results', async t => {
@@ -532,3 +532,76 @@ t.test(
     )
   },
 )
+
+// https://github.com/juliangruber/brace-expansion/issues/160
+t.test('strict throws when a guard truncates the expansion', async t => {
+  // Default / non-strict behaviour is unchanged: truncate silently.
+  t.same(expand('x{1..5}', { max: 2 }), ['x1', 'x2'])
+  t.same(expand('x{1..5}', { maxLength: 4 }), ['x1', 'x2'])
+
+  // Complete expansions that fit the limits still succeed under strict.
+  t.same(expand('x{1..2}', { max: 2, strict: true }), ['x1', 'x2'])
+  t.same(expand('{a,b}', { maxDepth: 0, strict: true }), ['a', 'b'])
+  t.same(expand('{a},b}', { maxRewrites: 1000, strict: true }), [
+    'a}',
+    'b',
+  ])
+
+  // False positives: complete results must not throw under strict.
+  t.same(
+    expand('{a,}{b,}', { max: 3, strict: true }),
+    ['ab', 'a', 'b'],
+    'empty pairs past max do not make strict throw',
+  )
+  t.same(
+    expand('{x,{y}}', { maxDepth: 0, strict: true }),
+    ['x', '{y}'],
+    'non-expanding nested braces past maxDepth do not make strict throw',
+  )
+  t.same(
+    expand('{x,${a,b}}', { maxDepth: 0, strict: true }),
+    ['x', '${a,b}'],
+    '${...} past maxDepth does not make strict throw',
+  )
+
+  t.throws(
+    () => expand('x{1..5}', { max: 2, strict: true }),
+    ExpansionLimitError,
+    'max truncates a sequence',
+  )
+  t.throws(
+    () => expand('x{1..5}', { maxLength: 4, strict: true }),
+    ExpansionLimitError,
+    'maxLength truncates a sequence',
+  )
+  t.throws(
+    () => expand('{{a,b}}', { maxDepth: 0, strict: true }),
+    ExpansionLimitError,
+    'maxDepth refuses further nesting',
+  )
+  t.throws(
+    () => expand('{a},b}', { maxRewrites: 0, strict: true }),
+    ExpansionLimitError,
+    'maxRewrites refuses the {a},b} rewrite',
+  )
+  // Comma-values loop strict throws (coverage for both ternary branches).
+  t.throws(
+    () => expand('{a,b,c}', { max: 2, strict: true }),
+    ExpansionLimitError,
+    'max truncates comma values',
+  )
+  t.throws(
+    () => expand('{aa,bb,cc}', { maxLength: 4, strict: true }),
+    ExpansionLimitError,
+    'maxLength truncates comma values',
+  )
+
+  try {
+    expand('x{1..5}', { max: 2, strict: true })
+    t.fail('expected ExpansionLimitError')
+  } catch (err) {
+    t.ok(err instanceof ExpansionLimitError)
+    t.equal(err.limit, 'max')
+    t.match(err.message, /max \(2\)/)
+  }
+})
