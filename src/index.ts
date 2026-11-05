@@ -61,10 +61,10 @@ export type ExpansionLimit =
  * expansion. Without `strict`, those guards still truncate silently.
  */
 export class ExpansionLimitError extends Error {
-  limit: ExpansionLimit
+  readonly limit: ExpansionLimit
 
-  constructor(limit: ExpansionLimit) {
-    super(`brace expansion truncated by ${limit}`)
+  constructor(limit: ExpansionLimit, value: number) {
+    super(`brace expansion truncated by ${limit} (${value})`)
     this.name = 'ExpansionLimitError'
     this.limit = limit
   }
@@ -222,16 +222,17 @@ function combine(
   let length = 0
   for (let a = 0; a < acc.length; a++) {
     for (let v = 0; v < values.length; v++) {
-      if (out.length >= max) {
-        if (strict) throw new ExpansionLimitError('max')
-        return out
-      }
       const expansion = (acc[a] as string) + pre + values[v]
       // Bash drops empty results at the top level. Skip them before they count
-      // against `max`, so `max` bounds the number of *kept* results.
+      // against `max`, so `max` bounds the number of *kept* results — and so a
+      // remaining empty pair does not make strict mode throw once `out` is full.
       if (dropEmpties && !expansion) continue
+      if (out.length >= max) {
+        if (strict) throw new ExpansionLimitError('max', max)
+        return out
+      }
       if (length + expansion.length > maxLength) {
-        if (strict) throw new ExpansionLimitError('maxLength')
+        if (strict) throw new ExpansionLimitError('maxLength', maxLength)
         return out
       }
       out.push(expansion)
@@ -298,7 +299,7 @@ function expandSequence(
       }
     }
     if (length + c.length > maxLength) {
-      if (strict) throw new ExpansionLimitError('maxLength')
+      if (strict) throw new ExpansionLimitError('maxLength', maxLength)
       break
     }
     N.push(c)
@@ -306,9 +307,33 @@ function expandSequence(
   }
   // Stopped early because of `max` while more of the sequence remains.
   if (strict && test(i, y)) {
-    throw new ExpansionLimitError('max')
+    throw new ExpansionLimitError('max', max)
   }
   return N
+}
+
+/** Whether `str` still contains a brace group that would expand (sequence,
+ * comma body not preceded by `$`, or the `{a},b}` rewrite) — used so
+ * `maxDepth` strict mode only throws when the result would be incomplete. */
+function wouldExpand(str: string): boolean {
+  let s = str
+  for (;;) {
+    const m = balanced('{', '}', s)
+    if (!m) return false
+    if (/\$$/.test(m.pre)) {
+      s = m.post
+      continue
+    }
+    const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body)
+    const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(
+      m.body,
+    )
+    if (isNumericSequence || isAlphaSequence || m.body.indexOf(',') >= 0) {
+      return true
+    }
+    if (m.post.match(/,(?!,).*\}/)) return true
+    s = m.post
+  }
 }
 
 function expand_(
@@ -324,11 +349,11 @@ function expand_(
   // Too deeply nested to keep following: treat the rest as literal, the same
   // way a group that cannot expand is already handled. Truncating rather than
   // throwing keeps `expand` total, matching `max` and `maxLength`. With
-  // `strict`, that silent truncation becomes an error when there is still a
-  // brace group that would have expanded - a plain leaf like `a` is fine.
+  // `strict`, that silent truncation becomes an error only when there is still
+  // a group that would actually expand — `{y}` / `{}` / `${...}` are fine.
   if (depth > maxDepth) {
-    if (strict && balanced('{', '}', str)) {
-      throw new ExpansionLimitError('maxDepth')
+    if (strict && wouldExpand(str)) {
+      throw new ExpansionLimitError('maxDepth', maxDepth)
     }
     return [str]
   }
@@ -388,7 +413,8 @@ function expand_(
       // {a},b}
       if (m.post.match(/,(?!,).*\}/)) {
         if (rewrites >= maxRewrites) {
-          if (strict) throw new ExpansionLimitError('maxRewrites')
+          if (strict)
+            throw new ExpansionLimitError('maxRewrites', maxRewrites)
         } else {
           rewrites++
           str = m.pre + '{' + m.body + escClose + m.post
@@ -415,7 +441,13 @@ function expand_(
 
     let values: string[]
     if (isSequence) {
-      values = expandSequence(m.body, isAlphaSequence, max, maxLength, strict)
+      values = expandSequence(
+        m.body,
+        isAlphaSequence,
+        max,
+        maxLength,
+        strict,
+      )
     } else {
       let n = parseCommaParts(m.body)
       if (n.length === 1 && n[0] !== undefined) {
@@ -484,6 +516,7 @@ function expand_(
             if (strict) {
               throw new ExpansionLimitError(
                 values.length >= max ? 'max' : 'maxLength',
+                values.length >= max ? max : maxLength,
               )
             }
             break outer
