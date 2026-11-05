@@ -558,6 +558,11 @@ t.test('strict throws when a guard truncates the expansion', async t => {
     ['x', '{y}'],
     'non-expanding nested braces past maxDepth do not make strict throw',
   )
+  t.same(
+    expand('{x,${a,b}}', { maxDepth: 0, strict: true }),
+    ['x', '${a,b}'],
+    '${...} past maxDepth does not make strict throw',
+  )
 
   t.throws(
     () => expand('x{1..5}', { max: 2, strict: true }),
