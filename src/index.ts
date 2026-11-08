@@ -342,15 +342,19 @@ function expand_(
         isTop = true
         continue
       }
-      // Nothing here expands, so the whole remaining string is literal.
-      return combine(
+      // The group itself is literal, but the rest of the string may still
+      // expand: bash turns `{a}{1..2}` into `{a}1 {a}2`.
+      acc = combine(
         acc,
-        pre + '{' + m.body + '}' + m.post,
+        pre + '{' + m.body + '}',
         [''],
         max,
         maxLength,
-        dropEmpties,
+        dropEmpties && !m.post.length,
       )
+      if (!m.post.length) break
+      str = m.post
+      continue
     }
 
     if (firstGroup) {

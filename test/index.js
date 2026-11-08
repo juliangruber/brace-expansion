@@ -55,6 +55,25 @@ t.test('ignores ${', async t => {
   t.strictSame(expand('x${a,b}x${c,d}x'), ['x${a,b}x${c,d}x'])
 })
 
+t.test('a literal group does not stop the groups after it', async t => {
+  // bash: an unexpandable brace group stays as it is, and the rest of the
+  // word still expands
+  t.strictSame(expand('{a}{1..2}'), ['{a}1', '{a}2'])
+  t.strictSame(expand('{1.5..3}{1..2}'), ['{1.5..3}1', '{1.5..3}2'])
+  t.strictSame(expand('x{}{1..-1}'), ['x{}1', 'x{}0', 'x{}-1'])
+  t.strictSame(expand('{1..3}{a..b..c}{1..2}'), [
+    '1{a..b..c}1',
+    '1{a..b..c}2',
+    '2{a..b..c}1',
+    '2{a..b..c}2',
+    '3{a..b..c}1',
+    '3{a..b..c}2',
+  ])
+  t.strictSame(expand('{a}{,b}'), ['{a}', '{a}b'])
+  t.strictSame(expand('{a}{b}'), ['{a}{b}'])
+  t.strictSame(expand('a{b}c'), ['a{b}c'])
+})
+
 t.test('empty option', async t => {
   t.strictSame(expand('-v{,,,,}'), ['-v', '-v', '-v', '-v', '-v'])
 })
