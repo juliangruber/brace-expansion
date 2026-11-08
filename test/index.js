@@ -74,6 +74,18 @@ t.test('a literal group does not stop the groups after it', async t => {
   t.strictSame(expand('a{b}c'), ['a{b}c'])
 })
 
+t.test('a single member holding a sequence still expands', async t => {
+  // bash: {{1..2}} is {1} {2}; the braces around a single member stay
+  t.strictSame(expand('{{1..2}}'), ['{1}', '{2}'])
+  t.strictSame(expand('{a{1..2}}'), ['{a1}', '{a2}'])
+  t.strictSame(expand('{x{1..2}y}'), ['{x1y}', '{x2y}'])
+  t.strictSame(expand('{{{1..2}}}'), ['{{1}}', '{{2}}'])
+  t.strictSame(expand('p{{1..2}}s'), ['p{1}s', 'p{2}s'])
+  t.strictSame(expand('{{1..2}{a,b}}'), ['{1a}', '{1b}', '{2a}', '{2b}'])
+  t.strictSame(expand('{{a}}'), ['{{a}}'])
+  t.strictSame(expand('{a{b}c}'), ['{a{b}c}'])
+})
+
 t.test('empty option', async t => {
   t.strictSame(expand('-v{,,,,}'), ['-v', '-v', '-v', '-v', '-v'])
 })

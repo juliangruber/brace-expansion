@@ -342,6 +342,31 @@ function expand_(
         isTop = true
         continue
       }
+      // A group with a single member may still hold groups that expand, as in
+      // `{{1..2}}` or `{x{1..2}y}`: bash gives `{1} {2}` and `{x1y} {x2y}`.
+      const inner = expand_(
+        m.body,
+        max,
+        maxLength,
+        maxDepth,
+        depth + 1,
+        maxRewrites,
+        false,
+      )
+      if (inner.length !== 1 || inner[0] !== m.body) {
+        acc = combine(
+          acc,
+          pre,
+          inner.map(embrace),
+          max,
+          maxLength,
+          dropEmpties && !m.post.length,
+        )
+        firstGroup = false
+        if (!m.post.length) break
+        str = m.post
+        continue
+      }
       // The group itself is literal, but the rest of the string may still
       // expand: bash turns `{a}{1..2}` into `{a}1 {a}2`.
       acc = combine(
