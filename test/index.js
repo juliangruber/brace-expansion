@@ -55,6 +55,44 @@ t.test('ignores ${', async t => {
   t.strictSame(expand('x${a,b}x${c,d}x'), ['x${a,b}x${c,d}x'])
 })
 
+t.test('a literal group does not stop the groups after it', async t => {
+  // bash: an unexpandable brace group stays as it is, and the rest of the
+  // word still expands
+  t.strictSame(expand('{a}{1..2}'), ['{a}1', '{a}2'])
+  t.strictSame(expand('{1.5..3}{1..2}'), ['{1.5..3}1', '{1.5..3}2'])
+  t.strictSame(expand('x{}{1..-1}'), ['x{}1', 'x{}0', 'x{}-1'])
+  t.strictSame(expand('{1..3}{a..b..c}{1..2}'), [
+    '1{a..b..c}1',
+    '1{a..b..c}2',
+    '2{a..b..c}1',
+    '2{a..b..c}2',
+    '3{a..b..c}1',
+    '3{a..b..c}2',
+  ])
+  t.strictSame(expand('{a}{,b}'), ['{a}', '{a}b'])
+  t.strictSame(expand('{a}{b}'), ['{a}{b}'])
+  t.strictSame(expand('a{b}c'), ['a{b}c'])
+})
+
+t.test('a single member holding a sequence still expands', async t => {
+  // bash: {{1..2}} is {1} {2}; the braces around a single member stay
+  t.strictSame(expand('{{1..2}}'), ['{1}', '{2}'])
+  t.strictSame(expand('{a{1..2}}'), ['{a1}', '{a2}'])
+  t.strictSame(expand('{x{1..2}y}'), ['{x1y}', '{x2y}'])
+  t.strictSame(expand('{{{1..2}}}'), ['{{1}}', '{{2}}'])
+  t.strictSame(expand('p{{1..2}}s'), ['p{1}s', 'p{2}s'])
+  t.strictSame(expand('{a,b}{{1..2}}'), ['a{1}', 'a{2}', 'b{1}', 'b{2}'])
+  t.strictSame(expand('{a,b}{{1..2}}x'), [
+    'a{1}x',
+    'a{2}x',
+    'b{1}x',
+    'b{2}x',
+  ])
+  t.strictSame(expand('{{1..2}{a,b}}'), ['{1a}', '{1b}', '{2a}', '{2b}'])
+  t.strictSame(expand('{{a}}'), ['{{a}}'])
+  t.strictSame(expand('{a{b}c}'), ['{a{b}c}'])
+})
+
 t.test('empty option', async t => {
   t.strictSame(expand('-v{,,,,}'), ['-v', '-v', '-v', '-v', '-v'])
 })
