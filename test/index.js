@@ -81,6 +81,13 @@ t.test('a single member holding a sequence still expands', async t => {
   t.strictSame(expand('{x{1..2}y}'), ['{x1y}', '{x2y}'])
   t.strictSame(expand('{{{1..2}}}'), ['{{1}}', '{{2}}'])
   t.strictSame(expand('p{{1..2}}s'), ['p{1}s', 'p{2}s'])
+  t.strictSame(expand('{a,b}{{1..2}}'), ['a{1}', 'a{2}', 'b{1}', 'b{2}'])
+  t.strictSame(expand('{a,b}{{1..2}}x'), [
+    'a{1}x',
+    'a{2}x',
+    'b{1}x',
+    'b{2}x',
+  ])
   t.strictSame(expand('{{1..2}{a,b}}'), ['{1a}', '{1b}', '{2a}', '{2b}'])
   t.strictSame(expand('{{a}}'), ['{{a}}'])
   t.strictSame(expand('{a{b}c}'), ['{a{b}c}'])
