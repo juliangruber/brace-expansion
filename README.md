@@ -75,6 +75,36 @@ const expansions = expand('{a,b}'.repeat(1500), {
 })
 ```
 
+Three more options bound the work a call does rather than its output.
+Past each of them, the part of `str` that is left comes back literally
+instead of being expanded, and nothing is thrown.
+
+- `maxDepth` caps how deeply nested brace sets are followed. This is
+  limited to `1_000` by default, to prevent stack exhaustion.
+- `maxRewrites` caps how many times Bash's `{a},b}` quirk, where a
+  brace set followed by a comma set still expands, may restart the
+  parse. This is limited to `1_000` by default.
+- `maxSteps` caps the total work: each character the parser scans,
+  each result it builds and each sequence value it generates is one
+  step, a zero-padded value is one per character, and each string it
+  starts expanding, `str` itself or a member of a brace set, costs 16
+  more. This is limited to `20_000_000` by default, which takes well
+  under a second to spend, to prevent CPU exhaustion. Ordinary
+  patterns need a few hundred steps, and nesting to the full
+  `maxDepth` about 4 million. If you raise `max` or `maxLength`,
+  raise this too.
+
+When `maxSteps` runs out partway, the top-level brace sets before the
+point where it ran out stay expanded, so the result can be partly
+expanded rather than `[str]`:
+
+```js
+expand('{a,b}' + '{'.repeat(10_000) + 'c,d' + '}'.repeat(10_000))
+// ['a{{{...c,d...}}}', 'b{{{...c,d...}}}']
+```
+
+Pass `Infinity` to lift any of these bounds.
+
 Valid expansions are:
 
 ```js
