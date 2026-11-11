@@ -11,7 +11,7 @@ test('deeply chained comma groups do not overflow the stack', function (t) {
   var str = '{' + '{a},'.repeat(50000) + 'b}'
   t.doesNotThrow(function () {
     var expanded = expand(str)
-    t.ok(expanded.length > 0, 'still returns a result')
+    t.equal(expanded.length, 50001, 'every member is kept')
   })
 
   // The overflow happened while parsing, before anything was expanded, so
