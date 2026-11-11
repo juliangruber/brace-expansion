@@ -12,7 +12,7 @@ test('deeply chained comma groups do not overflow the stack', async t => {
   const str = '{' + '{a},'.repeat(50000) + 'b}'
   assert.doesNotThrow(() => {
     const expanded = expand(str)
-    assert.ok(expanded.length > 0, 'still returns a result')
+    assert.strictEqual(expanded.length, 50001, 'every member is kept')
   })
 
   // The overflow happened while parsing, before anything was expanded, so

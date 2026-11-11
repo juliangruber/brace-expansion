@@ -7,12 +7,16 @@ import expand from '../index.js'
 // CVE-2026-14257 fix made the *tail* iterative (one level per chained group),
 // so chained input was already safe - nesting drives a different recursion that
 // the tail fix never touched.
+//
+// Both payloads take more steps than `maxSteps` allows by default, which would
+// stop them well short of `maxDepth`. It is lifted here, so that `maxDepth` is
+// what keeps them safe.
 test('deep nesting does not overflow the stack', async t => {
   // A set nested inside every comma member. Crashed at ~3,900 levels (~15.6KB).
   const members = '{a,'.repeat(10000) + 'z' + '}'.repeat(10000)
   assert.doesNotThrow(() => {
     assert.ok(
-      expand(members).length > 0,
+      expand(members, { maxSteps: Infinity }).length > 0,
       'comma members still return a result'
     )
   })
@@ -22,7 +26,7 @@ test('deep nesting does not overflow the stack', async t => {
   const single = '{'.repeat(10000) + 'a,b' + '}'.repeat(10000)
   assert.doesNotThrow(() => {
     assert.ok(
-      expand(single).length > 0,
+      expand(single, { maxSteps: Infinity }).length > 0,
       'single set still returns a result'
     )
   })
@@ -30,7 +34,7 @@ test('deep nesting does not overflow the stack', async t => {
   // Neither output bound could prevent this - the payloads expand to almost
   // nothing, so the result set never reaches either limit.
   assert.doesNotThrow(
-    () => expand(single, { max: 1, maxLength: 1 }),
+    () => expand(single, { max: 1, maxLength: 1, maxSteps: Infinity }),
     'still safe with both output bounds at their lowest'
   )
 })
