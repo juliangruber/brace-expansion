@@ -4,3 +4,6 @@ test
 example.js
 .npmignore
 .claude
+.github
+.prettierignore
+.prettierrc.json
