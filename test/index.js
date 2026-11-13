@@ -127,6 +127,42 @@ t.test('x and y of same type', async t => {
   t.strictSame(expand('{a..9}'), ['{a..9}'])
 })
 
+// In bash, a group whose body has a top-level `..` but is not a valid
+// sequence is a failed sequence, and it stays literal together with every
+// group nested in it.
+t.test('a failed sequence keeps its nested groups literal', async t => {
+  for (const pattern of [
+    '{{1..2}..3}',
+    '{a..{1..2}}',
+    '{..{1..2}}',
+    '{{1..2}x..x}',
+    '{a..x{1..2}}',
+    '{{1..2}...a}',
+    '{{1..2}..{1..2}}',
+    'x{..{1..2}}y',
+    '{{1..2}..1}{a}',
+  ]) {
+    t.strictSame(expand(pattern), [pattern], pattern)
+  }
+})
+
+// In bash, a `}` only closes a group once a top-level `,` or `..` has come
+// before it. Here the group opened by the first `{` therefore runs past the
+// `}` that matches it to a later one, and the whole span is a failed
+// sequence that stays literal.
+t.test('a failed sequence can run past the first }', async t => {
+  for (const pattern of [
+    '{a}..{1..2}}',
+    '{a}..{1..2}}}',
+    '{a}{1..2}..b}',
+    '{{1..2}}..b}',
+    '.{a}..b{1..2}}x',
+    '{a}{1..2}..b1}{a}',
+  ]) {
+    t.strictSame(expand(pattern), [pattern], pattern)
+  }
+})
+
 t.test('numeric sequences', async t => {
   t.strictSame(expand('a{1..2}b{2..3}c'), [
     'a1b2c',
