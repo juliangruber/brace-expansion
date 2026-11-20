@@ -48,6 +48,9 @@ expand('ppp{,config,oe{,conf}}')
 import { expand } from 'brace-expansion'
 ```
 
+The same function is also available as a default import,
+`import expand from 'brace-expansion'`.
+
 ### const expanded = expand(str, [options])
 
 Return an array of all possible and valid expansions of `str`. If
