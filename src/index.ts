@@ -655,3 +655,5 @@ function expand_(
 
   return acc
 }
+
+export { expand as default }
