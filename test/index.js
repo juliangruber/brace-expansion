@@ -4,6 +4,7 @@ import { createRequire } from 'node:module'
 import fs from 'fs'
 
 t.test('default export aliases expand', async t => {
+  // Consumers using the v3 or v4 default import can keep it when overriding to v5.
   t.equal(defaultExpand, expand)
   const cjs = createRequire(import.meta.url)('brace-expansion')
   t.equal(cjs.default, cjs.expand)
