@@ -4,10 +4,7 @@ import { createRequire } from 'node:module'
 import fs from 'fs'
 
 t.test('default export aliases expand', async t => {
-  // v3.0.0–v3.0.2 and v4 default-exported expandTop(str).
-  // Starting in v3.0.3, expandTop(str, options = {}) also accepted limits
-  // such as { max: 2 }. v5's expand(str, options = {}) supports both call
-  // shapes. The alias lets consumers override to v5 and keep their default import.
+  // Preserve v3/v4 default imports on override to v5 (v3.0.3 added options).
   t.equal(defaultExpand, expand)
   const cjs = createRequire(import.meta.url)('brace-expansion')
   t.equal(cjs.default, cjs.expand)
