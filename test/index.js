@@ -8,6 +8,7 @@ t.test('default export aliases expand', async t => {
   t.equal(defaultExpand, expand)
   const cjs = createRequire(import.meta.url)('brace-expansion')
   t.equal(cjs.default, cjs.expand)
+  t.strictSame(cjs.default('a{b,c}'), ['ab', 'ac'])
 })
 
 t.test('bash-results', async t => {
