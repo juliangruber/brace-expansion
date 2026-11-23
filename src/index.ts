@@ -74,6 +74,9 @@ function numeric(str: string) {
 }
 
 function escapeBraces(str: string) {
+  if (str.indexOf('\\') === -1) {
+    return str
+  }
   return str
     .replace(slashPattern, escSlash)
     .replace(openPattern, escOpen)
@@ -83,6 +86,9 @@ function escapeBraces(str: string) {
 }
 
 function unescapeBraces(str: string) {
+  if (str.indexOf('\0') === -1) {
+    return str
+  }
   return str
     .replace(escSlashPattern, '\\')
     .replace(escOpenPattern, '{')
