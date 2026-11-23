@@ -1,6 +1,15 @@
 import t from 'tap'
-import { expand } from '../dist/esm/index.js'
+import defaultExpand, { expand } from 'brace-expansion'
+import { createRequire } from 'node:module'
 import fs from 'fs'
+
+t.test('default export aliases expand', async t => {
+  // Preserve default imports; >=v3.0.3 added options.
+  t.equal(defaultExpand, expand)
+  const cjs = createRequire(import.meta.url)('brace-expansion')
+  t.equal(cjs.default, cjs.expand)
+  t.strictSame(cjs.default('a{b,c}'), ['ab', 'ac'])
+})
 
 t.test('bash-results', async t => {
   const resfile = new URL('./bash-results.txt', import.meta.url)
