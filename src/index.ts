@@ -373,7 +373,8 @@ function expandSequence(
     incr *= -1
     test = gte
   }
-  const pad = n.some(isPadded)
+  // Like Bash, only the endpoints set the width: `{1..10..02}` is `1 3 5 7 9`.
+  const pad = isPadded(n[0]) || isPadded(n[1])
   // A padded value is built a character at a time to `width`, which the input
   // sets, so it costs one step per character: 64KB of
   // `('{' + '0'.repeat(100) + '..99999}').repeat(n)` took 7 seconds charged
